@@ -1,0 +1,20 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+
+# Python dependencies
+venv/
+__pycache__/
+*.pyc
+
+# Django-related ignores
+*.sqlite3
+*.log
+staticfiles/
+
+# IDE or Editor-specific files
+.vscode/
+.idea/
+
+# Ignore env files
+.env
