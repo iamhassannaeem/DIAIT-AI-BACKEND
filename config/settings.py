@@ -35,7 +35,6 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
-    "drf_spectacular",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + PROJECT_APPS + THIRD_PARTY_APPS
@@ -52,7 +51,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "authentication.middlewares.ExceptionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -75,7 +73,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {"default": env.db_url("DB_URL")}
+DATABASES = {"default": env.db_url()}
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import User, PermissionGroup
+
+from .models import User
 
 
 @admin.register(User)
@@ -8,9 +9,3 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ("is_admin", "is_active")
     search_fields = ("email", "name")
     ordering = ("email",)
-
-
-@admin.register(PermissionGroup)
-class PermissionGroupAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-    search_fields = ("name",)

@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import User, PermissionGroup
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from .models import User
 
 
 class RegistrationSerializer(serializers.Serializer):

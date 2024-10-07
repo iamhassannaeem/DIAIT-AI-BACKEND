@@ -20,13 +20,11 @@ class UserManager(BaseUserManager):
             password=password,
         )
         user.is_admin = True
-        user.is_staff = True
         user.save(using=self._db)
         return user
 
 
 class User(AbstractBaseUser):
-    # profile_image = models.ImageField(upload_to="profile_images/", null=True, blank=True)
     email = models.EmailField(
         verbose_name="email address",
         max_length=255,
@@ -36,14 +34,6 @@ class User(AbstractBaseUser):
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     is_organization_owner = models.BooleanField(default=False)
-
-    group = models.ForeignKey(
-        "PermissionGroup",
-        on_delete=models.CASCADE,
-        related_name="permission_group",
-        null=True,
-        blank=True,
-    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -65,10 +55,3 @@ class User(AbstractBaseUser):
     @property
     def is_staff(self):
         return self.is_admin
-
-
-class PermissionGroup(models.Model):
-    name = models.CharField(max_length=64)
-
-    def __str__(self):
-        return self.name

@@ -1,44 +1,33 @@
 from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.models import User
-from rest_framework import status
-
-from rest_framework.response import Response
-
 from django.contrib.auth.hashers import make_password
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes
+from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
-
+from django.core.mail import send_mail
+from django.db import IntegrityError
+from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
-
-from django.db import IntegrityError
-from .models import User, PermissionGroup
-from .serializers import (
-    RegistrationSerializer,
-    RegisteredUserSerializer,
-    CustomTokenObtainPairSerializer,
-)
 from rest_framework_simplejwt.tokens import (
     RefreshToken,
     OutstandingToken,
-    BlacklistedToken,
 )
-from rest_framework_simplejwt.views import TokenObtainPairView
+
+from .models import User
+from .serializers import (
+    RegistrationSerializer,
+    RegisteredUserSerializer,
+)
 
 
 # from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register_view(request):
-    print("dfkvduyfvd")
     serializer = RegistrationSerializer(data=request.data)
-    print(serializer)
     if serializer.is_valid():
         try:
-
             user = User.objects.create_user(
                 email=serializer.validated_data["email"],
                 name=serializer.validated_data["name"],
