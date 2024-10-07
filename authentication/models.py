@@ -1,6 +1,7 @@
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
 
+
 class UserManager(BaseUserManager):
     def create_user(self, email, name, password=None):
         if not email:
@@ -22,6 +23,7 @@ class UserManager(BaseUserManager):
         user.is_staff = True
         user.save(using=self._db)
         return user
+
 
 class User(AbstractBaseUser):
     # profile_image = models.ImageField(upload_to="profile_images/", null=True, blank=True)

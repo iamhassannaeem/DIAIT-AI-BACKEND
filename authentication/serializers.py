@@ -41,18 +41,23 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["name"]
+
+
 ###############################
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
 
         # Add custom user data to the response (e.g., email, name)
-        data.update({
-            'email': self.user.email,
-            'name': self.user.name,
-        })
+        data.update(
+            {
+                "email": self.user.email,
+                "name": self.user.name,
+            }
+        )
 
         return data

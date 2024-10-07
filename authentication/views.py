@@ -12,13 +12,22 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny,IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from django.db import IntegrityError
 from .models import User, PermissionGroup
-from .serializers import RegistrationSerializer, RegisteredUserSerializer,CustomTokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import RefreshToken,OutstandingToken, BlacklistedToken
+from .serializers import (
+    RegistrationSerializer,
+    RegisteredUserSerializer,
+    CustomTokenObtainPairSerializer,
+)
+from rest_framework_simplejwt.tokens import (
+    RefreshToken,
+    OutstandingToken,
+    BlacklistedToken,
+)
 from rest_framework_simplejwt.views import TokenObtainPairView
+
 
 # from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 @api_view(["POST"])
@@ -38,8 +47,7 @@ def register_view(request):
             user.is_organization_owner = True
             user.save()
 
-
-            #permission_group = PermissionGroup.objects.get(id=serializer.validated_data.get("permission_group_id"))
+            # permission_group = PermissionGroup.objects.get(id=serializer.validated_data.get("permission_group_id"))
             # user.group = permission_group
             # user.save()
 
@@ -52,17 +60,18 @@ def register_view(request):
             }
             return Response(data)
 
-            return Response(registered_user_serializer.data, status=status.HTTP_201_CREATED)
+            return Response(
+                registered_user_serializer.data, status=status.HTTP_201_CREATED
+            )
 
         except PermissionGroup.DoesNotExist:
             return Response(
                 {"error": "Permission group does not exist."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except IntegrityError:
             return Response(
-                {"error": "Duplicate email."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Duplicate email."}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
             if user.id is not None:
@@ -76,8 +85,6 @@ def register_view(request):
 #     serializer_class = CustomTokenObtainPairSerializer
 
 
-
-
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
@@ -87,10 +94,18 @@ def logout_view(request):
 
         if refresh_token:
 
-            OutstandingToken.objects.filter(token=refresh_token).update(blacklisted=True)
-            return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+            OutstandingToken.objects.filter(token=refresh_token).update(
+                blacklisted=True
+            )
+            return Response(
+                {"message": "Successfully logged out."},
+                status=status.HTTP_205_RESET_CONTENT,
+            )
         else:
-            return Response({"error": "Refresh token not provided."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Refresh token not provided."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -107,12 +122,15 @@ def reset_password_confirm_view(request, uidb64, token):
             new_password = request.data.get("new_password")
             user.set_password(new_password)
             user.save()
-            return Response({"message": "Password has been reset."}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "Password has been reset."}, status=status.HTTP_200_OK
+            )
         else:
-            return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST
+            )
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         return Response({"error": "Invalid user."}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 @api_view(["POST"])
@@ -125,33 +143,36 @@ def reset_password_view(request):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         reset_link = f"http://yourfrontend/reset-password/{uid}/{token}/"
 
-        message = render_to_string('reset_password_email.html', {
-            'user': user,
-            'reset_link': reset_link,
-        })
+        message = render_to_string(
+            "reset_password_email.html",
+            {
+                "user": user,
+                "reset_link": reset_link,
+            },
+        )
 
         try:
             send_mail(
-                'Password Reset',
+                "Password Reset",
                 message,
-                'shahzaib.adil@kics.edu.pk',  # Sender's email
+                "shahzaib.adil@kics.edu.pk",  # Sender's email
                 [email],  # Recipient list
                 fail_silently=False,
             )
         except Exception as email_error:
-            return Response({"error": f"Failed to send email: {str(email_error)}"},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"Failed to send email: {str(email_error)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-        return Response({"message": "Password reset link sent to email."}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Password reset link sent to email."}, status=status.HTTP_200_OK
+        )
     except User.DoesNotExist:
-        return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
-
-
-
-
-
-
-
+        return Response(
+            {"error": "User with this email does not exist."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
 
 @api_view(["POST"])
@@ -161,21 +182,25 @@ def reset_password_view_old(request):
     new_password = request.data.get("new_password")
 
     if not old_password or not new_password:
-        return Response({"error": "Both old and new passwords are required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"error": "Both old and new passwords are required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     user = request.user
 
-
     if not user.check_password(old_password):
-        return Response({"error": "Old password is incorrect."}, status=status.HTTP_400_BAD_REQUEST)
-
+        return Response(
+            {"error": "Old password is incorrect."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     user.password = make_password(new_password)
     user.save()
     update_session_auth_hash(request, user)
 
-    return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
-
+    return Response(
+        {"message": "Password has been reset successfully."}, status=status.HTTP_200_OK
+    )
 
 
 ###### twilio#########
@@ -205,14 +230,15 @@ def login_view(request):
         verification_code = random.randint(100000, 999999)
         verification_codes[phone_number] = verification_code
 
-
         send_verification_code(phone_number, verification_code)
 
-        return Response({"message": "Verification code sent."}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Verification code sent."}, status=status.HTTP_200_OK
+        )
 
-    return Response({"error": "Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
-
-
+    return Response(
+        {"error": "Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST
+    )
 
 
 @api_view(["POST"])
@@ -224,6 +250,11 @@ def verify_code_view(request):
     if verification_codes.get(phone_number) == int(verification_code):
 
         del verification_codes[phone_number]
-        return Response({"message": "Verification successful. You are logged in."}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Verification successful. You are logged in."},
+            status=status.HTTP_200_OK,
+        )
 
-    return Response({"error": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST)
+    return Response(
+        {"error": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST
+    )

@@ -4,7 +4,7 @@ import requests
 access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI4MDM4NjE2LCJpYXQiOjE3Mjc5NTIyMTYsImp0aSI6ImY3MTc3ODg1YzE4NzRiMGNhNDIxNzNjOGE0YmRiMTk4IiwidXNlcl9pZCI6MTV9.19Fl0xiyTQZ7NxuM35I03Niyfmp0y73GWtH7vEWwvMs"
 
 # URL for the API endpoint where you want to send the POST request
-url = 'http://127.0.0.1:8000/aut/logout'  # Replace with your actual URL
+url = "http://127.0.0.1:8000/aut/logout"  # Replace with your actual URL
 
 # Prepare the JSON payload to be sent in the POST request
 payload = {
@@ -15,16 +15,16 @@ payload = {
 
 # Set up the headers for the request
 headers = {
-    'Authorization': f'Bearer {access_token}',
-    'Content-Type': 'application/json',
+    "Authorization": f"Bearer {access_token}",
+    "Content-Type": "application/json",
 }
 
 # Make the POST request
 response = requests.post(url, headers=headers, json=payload)
 
 # Check the response status code and content
-print(f'Status Code: {response.status_code}')
-print(f'Response Content: {response.text}')
+print(f"Status Code: {response.status_code}")
+print(f"Response Content: {response.text}")
 
 # Attempt to parse JSON response
 try:

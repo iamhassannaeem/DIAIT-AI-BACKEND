@@ -1,5 +1,6 @@
-import stripe
 from django.conf import settings
+
+import stripe
 
 
 class Stripe:
@@ -28,7 +29,7 @@ class StripeCustomer(Stripe):
         stripe.Customer.modify(
             customer_id,
             invoice_settings={
-                'default_payment_method': payment_id,
+                "default_payment_method": payment_id,
             },
         )
 
