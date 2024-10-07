@@ -27,9 +27,7 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
 ]
 
-PROJECT_APPS = [
-    "authentication",
-]
+PROJECT_APPS = ["authentication", "ai_call_agent"]
 
 THIRD_PARTY_APPS = [
     "rest_framework",
