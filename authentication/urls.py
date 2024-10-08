@@ -8,19 +8,21 @@ from rest_framework_simplejwt.views import (
 
 from .views import (
     register_view,
-    # LoginView,
+    LoginView,
     logout_view,
     reset_password_confirm_view,
     reset_password_view,
     reset_password_view_old,
-    login_view,
-    verify_code_view,
+
+    # login_view,
+    # verify_code_view,
 )
 
 router = DefaultRouter()
 
 urlpatterns = [
     path("register/", register_view, name="register"),
+    path('login/', LoginView.as_view(), name='login'),
     path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),
@@ -32,8 +34,8 @@ urlpatterns = [
     ),
     path("reset-password/", reset_password_view, name="reset_password"),
     path("reset-password_old/", reset_password_view_old, name="reset-password_old"),
-    path("login/", login_view, name="login"),
-    path("verify-code/", verify_code_view, name="verify_code"),
+    # path("login/", login_view, name="login"),
+    # path("verify-code/", verify_code_view, name="verify_code"),
 ]
 
 urlpatterns += router.urls

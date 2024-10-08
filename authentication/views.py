@@ -7,8 +7,12 @@ from django.db import IntegrityError
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from rest_framework.decorators import api_view, permission_classes
+from .serializers import CustomTokenObtainPairSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import (
     RefreshToken,
     OutstandingToken,
@@ -70,8 +74,8 @@ def register_view(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class LoginView(TokenObtainPairView):
-#     serializer_class = CustomTokenObtainPairSerializer
+class LoginView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
 
 @api_view(["POST"])
@@ -193,57 +197,57 @@ def reset_password_view_old(request):
 
 
 ###### twilio#########
-
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework import status
-from django.contrib.auth import authenticate
-import random
-
-from .utils import send_verification_code
-
-
-verification_codes = {}
-
-
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def login_view(request):
-    email = request.data.get("email")
-    password = request.data.get("password")
-    phone_number = request.data.get("phone_number")
-
-    user = authenticate(request, username=email, password=password)
-    if user is not None:
-
-        verification_code = random.randint(100000, 999999)
-        verification_codes[phone_number] = verification_code
-
-        send_verification_code(phone_number, verification_code)
-
-        return Response(
-            {"message": "Verification code sent."}, status=status.HTTP_200_OK
-        )
-
-    return Response(
-        {"error": "Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST
-    )
-
-
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def verify_code_view(request):
-    phone_number = request.data.get("phone_number")
-    verification_code = request.data.get("verification_code")
-
-    if verification_codes.get(phone_number) == int(verification_code):
-
-        del verification_codes[phone_number]
-        return Response(
-            {"message": "Verification successful. You are logged in."},
-            status=status.HTTP_200_OK,
-        )
-
-    return Response(
-        {"error": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST
-    )
+#
+# from rest_framework.decorators import api_view, permission_classes
+# from rest_framework.response import Response
+# from rest_framework import status
+# from django.contrib.auth import authenticate
+# import random
+#
+# from .utils import send_verification_code
+#
+#
+# verification_codes = {}
+#
+#
+# @api_view(["POST"])
+# @permission_classes([AllowAny])
+# def login_view(request):
+#     email = request.data.get("email")
+#     password = request.data.get("password")
+#     phone_number = request.data.get("phone_number")
+#
+#     user = authenticate(request, username=email, password=password)
+#     if user is not None:
+#
+#         verification_code = random.randint(100000, 999999)
+#         verification_codes[phone_number] = verification_code
+#
+#         send_verification_code(phone_number, verification_code)
+#
+#         return Response(
+#             {"message": "Verification code sent."}, status=status.HTTP_200_OK
+#         )
+#
+#     return Response(
+#         {"error": "Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST
+#     )
+#
+#
+# @api_view(["POST"])
+# @permission_classes([AllowAny])
+# def verify_code_view(request):
+#     phone_number = request.data.get("phone_number")
+#     verification_code = request.data.get("verification_code")
+#
+#     if verification_codes.get(phone_number) == int(verification_code):
+#
+#         del verification_codes[phone_number]
+#         return Response(
+#             {"message": "Verification successful. You are logged in."},
+#             status=status.HTTP_200_OK,
+#         )
+#
+#     return Response(
+#         {"error": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST
+#     )
