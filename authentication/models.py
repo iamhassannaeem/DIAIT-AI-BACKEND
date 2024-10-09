@@ -30,10 +30,12 @@ class User(AbstractBaseUser):
         max_length=255,
         unique=True,
     )
+    # profile_image = models.ImageField(upload_to="profile_images/", null=True)
     name = models.CharField(max_length=64)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     is_organization_owner = models.BooleanField(default=False)
+    is_email_verified = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -42,6 +44,7 @@ class User(AbstractBaseUser):
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["name"]
+    pass
 
     def __str__(self):
         return self.email
