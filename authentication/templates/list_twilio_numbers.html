@@ -1,0 +1,14 @@
+<h2>Twilio Numbers for User ID: {{ user_id }}</h2>
+<ul>
+    {% for number in twilio_numbers %}
+        <li>
+            <strong>User ID:</strong> {{ number.user.id }}<br>
+            <strong>Phone Number:</strong> {{ number.phone_number }}<br>
+            <strong>Account SID:</strong> {{ number.account_sid }}<br>
+            <strong>Account auth Token:</strong> {{ number.account_auth_token}}<br>
+            <strong>Auth Token Label:</strong> {{ number.auth_token_label }}<br>
+        </li>
+    {% empty %}
+        <li>No Twilio numbers found for this user.</li>
+    {% endfor %}
+</ul>

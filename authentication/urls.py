@@ -1,11 +1,11 @@
-from django.urls import path
+from django.urls import path,include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
     TokenVerifyView,
 )
-
+from authentication.Twiilio_authen.view import verify_twilio
 from .views import (
     register_view,
     LoginView,
@@ -34,6 +34,8 @@ urlpatterns = [
     path("logout/", logout_view, name="logout"),
     path('users/', get_all_users_view, name='users'),
     path("reset-password_old/", reset_password_view_old, name="reset-password_old"),
+
+
 
 ]
 

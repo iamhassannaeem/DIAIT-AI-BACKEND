@@ -1,6 +1,7 @@
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
 
+from django.conf import settings
 
 class UserManager(BaseUserManager):
     def create_user(self, email, name, password=None):
@@ -58,3 +59,27 @@ class User(AbstractBaseUser):
     @property
     def is_staff(self):
         return self.is_admin
+
+
+
+
+
+class TwilioNumbers(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=15)
+    account_sid = models.CharField(max_length=100)
+    account_auth_token = models.CharField(max_length=100)
+    auth_token_label = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"Twilio Number: {self.phone_number}, User ID: {self.user.id}"
+
+    def get_fields(self):
+        """Returns a dictionary of all field values."""
+        return {
+            "user_id": self.user.id,
+            "phone_number": self.phone_number,
+            "account_sid": self.account_sid,
+            "account_auth_token": self.account_auth_token,
+            "auth_token_label": self.auth_token_label,
+        }
