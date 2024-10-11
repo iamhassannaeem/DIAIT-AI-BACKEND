@@ -25,6 +25,7 @@ class Num_Provider(models.Model):
     def __str__(self):
         return self.provider_name
 class File(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     file_name = models.CharField(max_length=100)
 
     def __str__(self):

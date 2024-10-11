@@ -1,0 +1,8 @@
+
+from rest_framework import serializers
+from authentication.models import TwilioNumbers
+
+class TwilioNumbersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TwilioNumbers
+        fields = ['id', 'user', 'phone_number', 'account_sid', 'account_auth_token', 'auth_token_label']

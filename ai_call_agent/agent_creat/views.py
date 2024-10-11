@@ -1,78 +1,57 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
-from ..models import AgentDetails, Agent, ModelType, tech_Provider, Num_Provider, File
+
+from rest_framework import viewsets
+from rest_framework.response import Response
+from ..models import AgentDetails
+from .serializers import AgentDetailsSerializer
 from authentication.models import TwilioNumbers
-from django.urls import reverse
-from django.http import HttpResponseRedirect
+from rest_framework.decorators import action
+from rest_framework import status
 
 
-def add_agent_details(request, user_id):
-    if request.method == 'POST':
+class AgentDetailsViewSet(viewsets.ModelViewSet):
+    queryset = AgentDetails.objects.all()
+    serializer_class = AgentDetailsSerializer
 
-        agent_name = request.POST.get('agent_name')
-        agent_type_id = request.POST.get('agent_type')
-        model_type_id = request.POST.get('model_type')
-        first_message = request.POST.get('first_message')
-        technology_provider_id = request.POST.get('technology_provider')
-        phone_number_provider_id = request.POST.get('phone_number_provider')
-        prompt_files_id = request.POST.get('prompt_files')
-        agent_status = request.POST.get('agent_status', 'active')
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        request.data['user'] = user.id
 
+        return super().create(request, *args, **kwargs)
 
-        agent_details = AgentDetails.objects.create(
-            agent_name=agent_name,
-            user_id=user_id,
-            agent_type_id=agent_type_id,
-            model_type_id=model_type_id,
-            first_message=first_message,
-            technology_provider_id=technology_provider_id,
-            phone_number_provider_id=phone_number_provider_id,
-            prompt_files_id=prompt_files_id,
-            agent_status=agent_status
-        )
+    @action(detail=False, methods=['get'])
+    def phone_numbers(self, request):
+        """Get the list of phone numbers for the authenticated user."""
+        user = request.user
+        phone_numbers = TwilioNumbers.objects.filter(user=user)
 
 
-        return redirect('select_phone_number', agent_id=agent_details.id)
+        phone_numbers_list = [{"phone_number": number.phone_number, "account_sid": number.account_sid} for number in
+                              phone_numbers]
 
-    else:
+        return Response(phone_numbers_list, status=status.HTTP_200_OK)
 
-        agents = Agent.objects.all()
-        model_types = ModelType.objects.all()
-        tech_providers = tech_Provider.objects.all()
-        num_providers = Num_Provider.objects.all()
-        prompt_files = File.objects.all()
-
-    return render(request, 'add_agent_details.html', {
-        'agents': agents,
-        'model_types': model_types,
-        'tech_providers': tech_providers,
-        'num_providers': num_providers,
-        'prompt_files': prompt_files,
-        'user_id': user_id
-    })
+    @action(detail=True, methods=['post'])
+    def select_phone_number(self, request, pk=None):
+        agent_details = self.get_object()
 
 
-def select_phone_number(request, agent_id):
-    agent_details = AgentDetails.objects.get(id=agent_id)
-    user_id = agent_details.user_id
-    phone_numbers = TwilioNumbers.objects.filter(user_id=user_id)
+        user = request.user
+        phone_numbers = TwilioNumbers.objects.filter(user=user)
 
-    if request.method == 'POST':
-        selected_phone_number = request.POST.get('phone_number')
+
+        if not phone_numbers.exists():
+            return Response({'error': 'No phone numbers found for this user.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+        selected_phone_number = request.data.get('phone_number')
+
+
+        if not phone_numbers.filter(phone_number=selected_phone_number).exists():
+            return Response({'error': 'Phone number not found for the authenticated user.'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
         agent_details.phone_number = selected_phone_number
         agent_details.save()
 
-
-        return redirect('success')
-
-    return render(request, 'select_phone_number.html', {
-        'phone_numbers': phone_numbers,
-        'agent_details': agent_details
-    })
-
-
-
-def success_view(request):
-    return render(request, 'success.html')
+        return Response({'status': 'Phone number selected successfully.'}, status=status.HTTP_200_OK)
