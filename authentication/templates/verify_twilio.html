@@ -1,0 +1,8 @@
+<form method="POST" action="{% url 'verify_twilio' %}">
+    {% csrf_token %}
+    <input type="text" name="account_sid" placeholder="Account SID" required>
+    <input type="text" name="auth_token" placeholder="Auth Token" required>
+    <input type="text" name="phone_number" placeholder="Phone Number" required>
+    <input type="text" name="user_id" placeholder="userid" required>
+    <button type="submit">Verify Number</button>
+</form>
