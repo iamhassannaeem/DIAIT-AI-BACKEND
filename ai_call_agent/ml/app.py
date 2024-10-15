@@ -12,10 +12,13 @@ from twilio.rest import Client
 from dotenv import load_dotenv
 from .utils.twilio_transcriber import TwilioTranscriber
 from .utils.my_bot import math_tutor
-from .utils.my_voice import generate_audio
+from .utils.my_voice import get_audio_from_eleven_labs
 from .utils.my_bot import get_conversation_history
 import ngrok
-# from starlette.websockets import WebSocketDisconnect
+from io import BytesIO
+from starlette.websockets import WebSocketDisconnect
+
+
 
 
 
@@ -104,12 +107,13 @@ def fetch_call_details(call_sid,history=None, output_file='call_details.txt'):
 
 
 
-
-async def send_raw_audio(ws, file_path, stream_sid):
+async def send_raw_audio(ws, audio_buffer, stream_sid):
     try:
-        # print("Stream SID:", stream_sid)
-        data, original_samplerate = sf.read(file_path)
+        # Read the audio buffer directly using soundfile
+        audio_data = BytesIO(audio_buffer)
+        data, original_samplerate = sf.read(audio_data)
         new_samplerate = 8000
+
         if len(data.shape) > 1:  # If stereo, take one channel
             data = data[:, 0]
 
@@ -118,35 +122,45 @@ async def send_raw_audio(ws, file_path, stream_sid):
         new_length = int(duration * new_samplerate)
         resampled_data = np.interp(np.linspace(0, len(data), new_length), np.arange(len(data)), data)
 
+        # Create a temporary WAV file with the resampled audio
         with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_wav:
             temp_filename = temp_wav.name
             sf.write(temp_filename, resampled_data, new_samplerate)
 
-        # print("Temporary file created:", temp_filename)
-
+        # Open the temporary file and stream it via WebSocket
         with wave.open(temp_filename, 'rb') as wav_file:
             while True:
-                wav_data = wav_file.readframes(320)
+                wav_data = wav_file.readframes(320)  # Reading 320 frames for mu-law conversion
                 if not wav_data:
                     print("No more data to read.")
-                    # await ws.send(json.dumps({"event": "mark", "streamSid": stream_sid, "mark": {"name": "my label"}}))
-                    await ws.send({
-                            "type": "websocket.send",
-                            "text": json.dumps({"event": "mark", "streamSid": stream_sid, "mark": {"name": "my label"}})
-                        })
+
+                    await ws.send(
+                        {"type": "websocket.send",
+
+                        "text":json.dumps({
+                        'streamSid': stream_sid,
+                        'event': 'mark',
+                        "mark": {"name": "my label"}
+                    })}
+                    )
                     break
 
+                # Convert raw PCM data to mu-law
                 mulaw_data = audioop.lin2ulaw(wav_data, 2)
                 base64_audio = base64.b64encode(mulaw_data).decode("utf-8")
-                # await ws.send(json.dumps({"event": "media", "streamSid": stream_sid, "media": {"payload": base64_audio}}))
-                await ws.send({
-                            "type": "websocket.send",
-                            "text": json.dumps({"event": "media", "streamSid": stream_sid, "media": {"payload": base64_audio}})
-                        })
+                await ws.send(
+                {"type": "websocket.send",
 
+                "text":json.dumps({
+                'streamSid': stream_sid,
+                'event': 'media',
+                "media": {"payload": base64_audio}
+                })}
+                )
 
     finally:
         print("Finished sending audio.")
+
 
 @app.post(INCOMING_CALL_ROUTE)
 async def receive_call(request: Request):
@@ -212,11 +226,10 @@ async def transcription_websocket(websocket: WebSocket):
                         response = math_tutor(transcript_segment, call_sid)
                         print(response)
 
-                        generate_audio(response)
+                        audio = get_audio_from_eleven_labs(response)
                         transcriber.reset_transcript()
                         stream_sid = data['streamSid']
-                        file_path = "test_voice.wav"
-                        await send_raw_audio(websocket, file_path, stream_sid)
+                        await send_raw_audio(websocket, audio, stream_sid)
 
                 case "stop":
                     print("case stop")
