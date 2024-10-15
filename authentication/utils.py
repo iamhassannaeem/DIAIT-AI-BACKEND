@@ -1,9 +1,7 @@
-# utils.py
+
 
 from twilio.rest import Client
 
-
-# utils.py
 from django.core.mail import send_mail
 from django.conf import settings
 

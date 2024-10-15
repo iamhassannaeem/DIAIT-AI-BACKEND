@@ -47,8 +47,10 @@ class AgentDetails(models.Model):
         ('pending', 'Pending'),
     ]
 
+    # AgentDetails_id = models.AutoField(primary_key=True)
     agent_name = models.CharField(max_length=100)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name='agent_details')
     agent_type = models.ForeignKey(Agent, on_delete=models.CASCADE)
     model_type = models.ForeignKey(ModelType, on_delete=models.CASCADE)
     first_message = models.CharField(max_length=100)
@@ -65,6 +67,21 @@ class AgentDetails(models.Model):
         return f"{self.agent_name} - {self.agent_status}"
 
 
+class TwilioNumbers(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=15)
+    account_sid = models.CharField(max_length=100)
+    account_auth_token = models.CharField(max_length=100)
+    auth_token_label = models.CharField(max_length=100)
 
+    def __str__(self):
+        return f"Twilio Number: {self.phone_number}, User ID: {self.user.id}"
 
-
+    def get_fields(self):
+        return {
+            "user_id": self.user.id,
+            "phone_number": self.phone_number,
+            "account_sid": self.account_sid,
+            "account_auth_token": self.account_auth_token,
+            "auth_token_label": self.auth_token_label,
+        }

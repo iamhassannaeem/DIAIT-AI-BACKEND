@@ -33,9 +33,10 @@ class User(AbstractBaseUser):
     )
     # profile_image = models.ImageField(upload_to="profile_images/", null=True)
     name = models.CharField(max_length=64)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
-    is_organization_owner = models.BooleanField(default=False)
+    is_organization_owner = models.BooleanField(null=True, default=False)
+
     is_email_verified = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -56,30 +57,25 @@ class User(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return True
 
-    @property
-    def is_staff(self):
-        return self.is_admin
+    # @property
+    # def is_staff(self):
+    #     return self.is_admin
 
 
+class ErrorLog(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    error_type = models.CharField(max_length=100)
+    error_message = models.TextField()
+    traceback = models.TextField()
+    user_agent = models.TextField(blank=True, null=True)
+    user_ip = models.GenericIPAddressField(blank=True, null=True)
 
 
-
-class TwilioNumbers(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    phone_number = models.CharField(max_length=15)
-    account_sid = models.CharField(max_length=100)
-    account_auth_token = models.CharField(max_length=100)
-    auth_token_label = models.CharField(max_length=100)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Twilio Number: {self.phone_number}, User ID: {self.user.id}"
+        return f"{self.error_type} at {self.timestamp}"
 
-    def get_fields(self):
-        """Returns a dictionary of all field values."""
-        return {
-            "user_id": self.user.id,
-            "phone_number": self.phone_number,
-            "account_sid": self.account_sid,
-            "account_auth_token": self.account_auth_token,
-            "auth_token_label": self.auth_token_label,
-        }
+
+

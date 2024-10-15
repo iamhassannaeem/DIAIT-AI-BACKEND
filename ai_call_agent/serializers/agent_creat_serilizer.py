@@ -1,8 +1,8 @@
-# serializers.py
+
 from rest_framework import serializers
-from ..models import AgentDetails
+from ai_call_agent.models import AgentDetails
 
 class AgentDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AgentDetails
-        fields = '__all__'  # Or specify the fields you want to include
+        fields = '__all__'
