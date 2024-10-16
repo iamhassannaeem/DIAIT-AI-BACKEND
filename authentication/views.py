@@ -99,16 +99,23 @@ def send_password_reset_email(request, user):
 
     send_email(mail_subject, message, [user.email])
 
-
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
     refresh_token = request.data.get("refresh")
     if refresh_token:
-        OutstandingToken.objects.filter(token=refresh_token).update(blacklisted=True)
-        return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+        try:
+            token = RefreshToken(refresh_token)
+            # Blacklist the token
+            token.blacklist()
+
+            return Response({"message": "Successfully logged out."}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response({"error": "Refresh token not provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 @api_view(['POST'])
