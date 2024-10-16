@@ -57,3 +57,6 @@ urllib3==2.2.3
 uvicorn==0.31.1
 websockets==13.1
 yarl==1.14.0
+sqlalchemy
+psycopg2
+
