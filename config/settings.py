@@ -17,6 +17,7 @@ SECRET_KEY = env.str("SECRET_KEY", default="")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 AUTH_USER_MODEL = "authentication.User"
+AUTH_TwilioNumbers_MODEL = "authentication.TwilioNumbers"
 
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -49,6 +50,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+     "authentication.middlewares.ExceptionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

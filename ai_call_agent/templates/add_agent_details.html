@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Agent Details</title>
+</head>
+<body>
+    <h1>Add Agent Details</h1>
+    <form method="post">
+        {% csrf_token %}
+
+        <label for="agent_name">Agent Name:</label>
+        <input type="text" id="agent_name" name="agent_name" required><br><br>
+
+        <label for="agent_type">Agent Type:</label>
+        <select id="agent_type" name="agent_type" required>
+            {% for agent in agents %}
+                <option value="{{ agent.id }}">{{ agent.agent_name }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="model_type">Model Type:</label>
+        <select id="model_type" name="model_type" required>
+            {% for model in model_types %}
+                <option value="{{ model.id }}">{{ model.model_name }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="first_message">First Message:</label>
+        <input type="text" id="first_message" name="first_message" required><br><br>
+
+        <label for="technology_provider">Technology Provider:</label>
+        <select id="technology_provider" name="technology_provider" required>
+            {% for provider in tech_providers %}
+                <option value="{{ provider.id }}">{{ provider.provider_name }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="phone_number_provider">Phone Number Provider:</label>
+        <select id="phone_number_provider" name="phone_number_provider" required>
+            {% for provider in num_providers %}
+                <option value="{{ provider.id }}">{{ provider.provider_name }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="prompt_files">Prompt Files:</label>
+        <select id="prompt_files" name="prompt_files" required>
+            {% for file in prompt_files %}
+                <option value="{{ file.id }}">{{ file.file_name }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="agent_status">Agent Status:</label>
+        <select id="agent_status" name="agent_status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="pending">Pending</option>
+        </select><br><br>
+
+        <button type="submit">Add Agent Details</button>
+    </form>
+</body>
+</html>

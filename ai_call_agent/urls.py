@@ -1,10 +1,14 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import FeedBackAgentViewSet
+from rest_framework import routers
+from .views import AgentDetailsViewSet,FeedbackViewSet,TwilioNumbersViewSet,FileViewSet
 
-router = DefaultRouter()
-router.register(r'feedback', FeedBackAgentViewSet)  # Register the viewset with the router
 
-urlpatterns = [
-    path('', include(router.urls)),  # Include the router's URLs
-]
+router = routers.DefaultRouter()
+
+router.register("agent", AgentDetailsViewSet, basename="agent")
+router.register("feedback", FeedbackViewSet, basename="feedback")
+router.register("twillio_auth", TwilioNumbersViewSet, basename="twillio_auth")
+
+router.register("library",FileViewSet, basename="library")
+
+
+urlpatterns = router.urls
