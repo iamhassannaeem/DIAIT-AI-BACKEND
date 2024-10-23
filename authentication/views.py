@@ -122,6 +122,7 @@ def logout_view(request):
 @permission_classes([AllowAny])
 def Forgot_pwd_request_view(request):
     email = request.data.get('email')
+    print(email)
     user = User.objects.get(email=email)
     send_password_reset_email(request, user)
     return Response({'message': 'Password reset link has been sent to your email.'}, status=status.HTTP_200_OK)

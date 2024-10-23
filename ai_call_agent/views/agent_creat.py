@@ -1,47 +1,94 @@
-from rest_framework import viewsets
+from ai_call_agent.models import FeedbackAgent, SalesAgent, AIAudio, AIModel, AITec, Agent, TwilioNumbers, File
+from ai_call_agent.serializers import FeedbackAgentDetailsSerializer, SalesAgentDetailsSerializer, AIModelSerializer, AITecSerializer, AIAudioSerializer, Twilio_agentNumberSerializer, File_agentSerializer
+
 from rest_framework.response import Response
-from ai_call_agent.models import AgentDetails, TwilioNumbers
-from ai_call_agent.serializers import AgentDetailsSerializer
-from rest_framework.decorators import action
-from rest_framework import status
+from rest_framework import status, viewsets
+from django.shortcuts import get_object_or_404
 
+class AgentViewSet(viewsets.ViewSet):
+    def create(self, request):
+        agent_type = request.data.get('agent_type')
 
-class AgentDetailsViewSet(viewsets.ModelViewSet):
-    queryset = AgentDetails.objects.all()
-    serializer_class = AgentDetailsSerializer
+        if agent_type == 'feedback':
+            serializer = FeedbackAgentDetailsSerializer(data=request.data, context={'request': request})
+        elif agent_type == 'sales':
+            serializer = SalesAgentDetailsSerializer(data=request.data, context={'request': request})
+        else:
+            return Response({"error": "Invalid agent type specified."}, status=status.HTTP_400_BAD_REQUEST)
 
-    def create(self, request, *args, **kwargs):
-        request.data['user'] = request.user.id
-        return super().create(request, *args, **kwargs)
+        if serializer.is_valid():
+            agent = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def update(self, request, *args, **kwargs):
-        request.data['user'] = request.user.id
-        return super().update(request, *args, **kwargs)
+    def list(self, request):
+        feedback_agents = FeedbackAgent.objects.all()
+        sales_agents = SalesAgent.objects.all()
 
-    @action(detail=False, methods=['get'])
-    def phone_numbers(self, request):
+        feedback_data = FeedbackAgentDetailsSerializer(feedback_agents, many=True).data
+        sales_data = SalesAgentDetailsSerializer(sales_agents, many=True).data
+        for item in feedback_data:
+            item['type'] = 'feedback'
+
+        for item in sales_data:
+            item['type'] = 'sales'
+
+        return Response({
+            'feedback_agents': feedback_data,
+            'sales_agents': sales_data,
+        })
+
+    def update(self, request, pk=None):
+        agent_type = request.data.get('agent_type')
+        if agent_type == 'feedback':
+            agent = FeedbackAgent.objects.get(pk=pk)
+            serializer = FeedbackAgentDetailsSerializer(agent, data=request.data, context={'request': request})
+        elif agent_type == 'sales':
+            agent = SalesAgent.objects.get(pk=pk)
+            serializer = SalesAgentDetailsSerializer(agent, data=request.data, context={'request': request})
+        else:
+            return Response({"error": "Invalid agent type specified."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if serializer.is_valid():
+            agent = serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk=None):
+        agent_type = request.data.get('agent_type')
+
+        if agent_type == 'feedback':
+            agent = get_object_or_404(FeedbackAgent, pk=pk)
+        elif agent_type == 'sales':
+            agent = get_object_or_404(SalesAgent, pk=pk)
+        else:
+            return Response({"error": "Invalid agent type specified."}, status=status.HTTP_400_BAD_REQUEST)
+
+        agent.delete()
+        return Response({"message": "Agent deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+class InputDataView(viewsets.ViewSet):
+    def list(self, request):
         user = request.user
-        phone_numbers = TwilioNumbers.objects.filter(user=user)
-        phone_numbers_list = [{"phone_number": number.phone_number, "account_sid": number.account_sid}
-                              for number in phone_numbers]
 
-        return Response(phone_numbers_list, status=status.HTTP_200_OK)
+        ai_models = AIModel.objects.all()
+        ai_tecs = AITec.objects.all()
+        ai_audio = AIAudio.objects.all()
+        twilio_numbers = TwilioNumbers.objects.filter(user=user, status='active')
+        user_files = File.objects.filter(user=user)
 
-    @action(detail=True, methods=['post'])
-    def select_phone_number(self, request, pk=None):
-        agent_details = self.get_object()
-        user = request.user
-        phone_numbers = TwilioNumbers.objects.filter(user=user)
+        ai_model_data = AIModelSerializer(ai_models, many=True).data
+        ai_tec_data = AITecSerializer(ai_tecs, many=True).data
+        ai_audio_data = AIAudioSerializer(ai_audio, many=True).data
+        twilio_numbers_data = Twilio_agentNumberSerializer(twilio_numbers, many=True).data
+        user_files_data = File_agentSerializer(user_files, many=True).data
 
-        if not phone_numbers.exists():
-            return Response({'error': 'No phone numbers found for this user.'}, status=status.HTTP_404_NOT_FOUND)
+        response_data = {
+            'ai_models': ai_model_data,
+            'ai_tecs': ai_tec_data,
+            'voices': ai_audio_data,
+            'twilio_numbers': twilio_numbers_data,
+            'files': user_files_data
+        }
 
-        selected_phone_number = request.data.get('phone_number')
-        if not phone_numbers.filter(phone_number=selected_phone_number).exists():
-            return Response({'error': 'Phone number not found for the authenticated user.'},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        agent_details.phone_number = selected_phone_number
-        agent_details.save()
-
-        return Response({'status': 'Phone number selected successfully.'}, status=status.HTTP_200_OK)
+        return Response(response_data)
