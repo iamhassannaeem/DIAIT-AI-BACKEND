@@ -20,9 +20,10 @@ class FileViewSet(viewsets.ModelViewSet):
         file_type = request.query_params.get('file_type', None)
 
         queryset = File.objects.filter(user=request.user)
+
         if file_type:
             queryset = queryset.filter(file_type=file_type)
-
+        queryset = queryset.order_by('created_date')
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

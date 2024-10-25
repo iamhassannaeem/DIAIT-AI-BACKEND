@@ -21,17 +21,36 @@ class AgentViewSet(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def retrieve(self, request, pk=None, agent_type=None):
+
+        if agent_type == 'feedback':
+            agent = get_object_or_404(FeedbackAgent, pk=pk)
+            serializer = FeedbackAgentDetailsSerializer(agent)
+        elif agent_type == 'sales':
+            agent = get_object_or_404(SalesAgent, pk=pk)
+            serializer = SalesAgentDetailsSerializer(agent)
+        else:
+            return Response({"error": "Invalid agent type specified."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def list(self, request):
-        feedback_agents = FeedbackAgent.objects.all()
-        sales_agents = SalesAgent.objects.all()
+
+
+        feedback_agents = FeedbackAgent.objects.all().order_by('created_date')
+        sales_agents = SalesAgent.objects.all().order_by('created_date')
+
 
         feedback_data = FeedbackAgentDetailsSerializer(feedback_agents, many=True).data
         sales_data = SalesAgentDetailsSerializer(sales_agents, many=True).data
+
+
         for item in feedback_data:
             item['type'] = 'feedback'
 
         for item in sales_data:
             item['type'] = 'sales'
+
 
         return Response({
             'feedback_agents': feedback_data,
@@ -71,17 +90,20 @@ class InputDataView(viewsets.ViewSet):
     def list(self, request):
         user = request.user
 
+        # Query data
         ai_models = AIModel.objects.all()
         ai_tecs = AITec.objects.all()
         ai_audio = AIAudio.objects.all()
         twilio_numbers = TwilioNumbers.objects.filter(user=user, status='active')
         user_files = File.objects.filter(user=user)
 
+
         ai_model_data = AIModelSerializer(ai_models, many=True).data
         ai_tec_data = AITecSerializer(ai_tecs, many=True).data
         ai_audio_data = AIAudioSerializer(ai_audio, many=True).data
         twilio_numbers_data = Twilio_agentNumberSerializer(twilio_numbers, many=True).data
         user_files_data = File_agentSerializer(user_files, many=True).data
+
 
         response_data = {
             'ai_models': ai_model_data,
