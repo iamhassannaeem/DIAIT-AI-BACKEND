@@ -26,16 +26,17 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser):
+
     email = models.EmailField(
         verbose_name="email address",
         max_length=255,
         unique=True,
     )
-    # profile_image = models.ImageField(upload_to="profile_images/", null=True)
+    profile_image = models.ImageField(upload_to="profile_images/", null=True)
     name = models.CharField(max_length=64)
     is_active = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
-    is_organization_owner = models.BooleanField(null=True, default=False)
+    # is_organization_owner = models.BooleanField(null=True, default=False)
 
     is_email_verified = models.BooleanField(default=False)
 

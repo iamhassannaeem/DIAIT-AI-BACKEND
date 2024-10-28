@@ -7,13 +7,15 @@ from rest_framework_simplejwt.views import (
 )
 from .views import (
     register_view,
-    LoginView,
+    login_view,
     logout_view,
     reset_password_view_old,
     activate_view,
     Forgot_pwd_request_view,
     reset_password_view,
-    get_all_users_view
+    get_all_users_view,
+    resend_activation_email_view,
+    verify_code_view
 
 )
 
@@ -21,8 +23,10 @@ router = DefaultRouter()
 
 urlpatterns = [
     path("register/", register_view, name="register"),
-    path('activate/<uidb64>/<token>/', activate_view, name='activate'),
-    path('login/', LoginView.as_view(), name='login'),
+    path('activate/<str:token>/<str:uidb64>/', activate_view, name='activate'),
+    path('request_new_activation/', resend_activation_email_view, name='request_new_activation'),
+    path('login/',login_view, name='login'),
+    path('verify-code/',verify_code_view, name='verify_code'),
     path('password_reset_request/',Forgot_pwd_request_view, name='password_reset_request'),
     path('reset_password/<uidb64>/<token>/', reset_password_view, name='reset_password'),
 

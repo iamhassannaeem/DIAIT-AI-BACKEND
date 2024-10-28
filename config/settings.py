@@ -14,10 +14,12 @@ DEBUG = env.bool("DEBUG", default=True)
 
 SECRET_KEY = env.str("SECRET_KEY", default="")
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+# ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['192.168.1.6', 'localhost', '127.0.0.1'])
 
 AUTH_USER_MODEL = "authentication.User"
-AUTH_TwilioNumbers_MODEL = "authentication.TwilioNumbers"
+
+# AUTH_TwilioNumbers_MODEL = "authentication.TwilioNumbers"
 
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -109,7 +111,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
 }
 
@@ -134,3 +136,7 @@ EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+
+AWS_ACCESS_KEY_ID = env('S3_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('S3_SECRET_ACCESS_KEY')
+AWS_S3_BUCKET_NAME=env('AWS_S3_BUCKET_NAME')
