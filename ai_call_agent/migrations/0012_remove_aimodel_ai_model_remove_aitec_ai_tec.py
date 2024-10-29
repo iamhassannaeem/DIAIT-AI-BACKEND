@@ -6,16 +6,16 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0011_aimodel_aitec_remove_agentdetails_agent_type_and_more'),
+        ("ai_call_agent", "0011_aimodel_aitec_remove_agentdetails_agent_type_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='aimodel',
-            name='ai_model',
+            model_name="aimodel",
+            name="ai_model",
         ),
         migrations.RemoveField(
-            model_name='aitec',
-            name='ai_tec',
+            model_name="aitec",
+            name="ai_tec",
         ),
     ]

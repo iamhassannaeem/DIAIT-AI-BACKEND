@@ -6,17 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0007_agentdetails_gender'),
+        ("ai_call_agent", "0007_agentdetails_gender"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='del_date',
+            model_name="agentdetails",
+            name="del_date",
         ),
         migrations.AddField(
-            model_name='agentdetails',
-            name='agent_name',
+            model_name="agentdetails",
+            name="agent_name",
             field=models.CharField(default=2, max_length=100),
             preserve_default=False,
         ),

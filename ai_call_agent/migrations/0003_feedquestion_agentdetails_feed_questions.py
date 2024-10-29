@@ -6,20 +6,32 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0002_alter_file_agent_details'),
+        ("ai_call_agent", "0002_alter_file_agent_details"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='FeedQuestion',
+            name="FeedQuestion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('question_text', models.CharField(max_length=255)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("question_text", models.CharField(max_length=255)),
             ],
         ),
         migrations.AddField(
-            model_name='agentdetails',
-            name='feed_questions',
-            field=models.ManyToManyField(blank=True, related_name='agent_details', to='ai_call_agent.feedquestion'),
+            model_name="agentdetails",
+            name="feed_questions",
+            field=models.ManyToManyField(
+                blank=True,
+                related_name="agent_details",
+                to="ai_call_agent.feedquestion",
+            ),
         ),
     ]

@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0027_salesagent_company_information_and_more'),
+        ("ai_call_agent", "0027_salesagent_company_information_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='agentfilemapping',
-            name='description',
+            model_name="agentfilemapping",
+            name="description",
             field=models.CharField(default=1, max_length=255),
             preserve_default=False,
         ),

@@ -6,18 +6,29 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0029_remove_salesagent_company_information_and_more'),
+        ("ai_call_agent", "0029_remove_salesagent_company_information_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='agentfilemapping',
-            name='description',
+            model_name="agentfilemapping",
+            name="description",
         ),
         migrations.AddField(
-            model_name='agentfilemapping',
-            name='file_type',
-            field=models.CharField(choices=[('prompt_files', 'Prompt Files'), ('product_pricing', 'Product Pricing'), ('pricing', 'Pricing'), ('general_information', 'General Information'), ('product_information', 'Product Information'), ('company_information', 'Company Information')], default=1, max_length=30),
+            model_name="agentfilemapping",
+            name="file_type",
+            field=models.CharField(
+                choices=[
+                    ("prompt_files", "Prompt Files"),
+                    ("product_pricing", "Product Pricing"),
+                    ("pricing", "Pricing"),
+                    ("general_information", "General Information"),
+                    ("product_information", "Product Information"),
+                    ("company_information", "Company Information"),
+                ],
+                default=1,
+                max_length=30,
+            ),
             preserve_default=False,
         ),
     ]

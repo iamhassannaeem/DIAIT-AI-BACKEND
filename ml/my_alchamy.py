@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 # Connection URL
-db_url = 'postgresql://postgres:1234@localhost/Dialit_db'
+db_url = "postgresql://postgres:1234@localhost/Dialit_db"
 
 # Create an engine
 engine = create_engine(db_url)

@@ -7,28 +7,48 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0017_alter_agentfilemapping_agent_details'),
+        ("ai_call_agent", "0017_alter_agentfilemapping_agent_details"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='feedbackagent',
-            name='ai_model',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aimodel'),
+            model_name="feedbackagent",
+            name="ai_model",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_call_agent.aimodel",
+            ),
         ),
         migrations.AlterField(
-            model_name='feedbackagent',
-            name='ai_tec',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aitec'),
+            model_name="feedbackagent",
+            name="ai_tec",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_call_agent.aitec",
+            ),
         ),
         migrations.AlterField(
-            model_name='salesagent',
-            name='ai_model',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aimodel'),
+            model_name="salesagent",
+            name="ai_model",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_call_agent.aimodel",
+            ),
         ),
         migrations.AlterField(
-            model_name='salesagent',
-            name='ai_tec',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aitec'),
+            model_name="salesagent",
+            name="ai_tec",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_call_agent.aitec",
+            ),
         ),
     ]

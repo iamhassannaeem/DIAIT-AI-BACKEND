@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0025_feedbackagent_created_date_salesagent_created_date'),
+        ("ai_call_agent", "0025_feedbackagent_created_date_salesagent_created_date"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='feedbackagent',
-            name='first_message',
+            model_name="feedbackagent",
+            name="first_message",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
         migrations.AddField(
-            model_name='salesagent',
-            name='first_message',
+            model_name="salesagent",
+            name="first_message",
             field=models.CharField(blank=True, max_length=100, null=True),
         ),
     ]
