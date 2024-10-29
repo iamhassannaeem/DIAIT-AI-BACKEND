@@ -10,9 +10,11 @@ class RegistrationSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
 
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True)
+
 
 class UserDetailSerializer(serializers.ModelSerializer):
     token = serializers.SerializerMethodField()
@@ -33,4 +35,3 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["name"]
-
