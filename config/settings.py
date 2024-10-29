@@ -14,12 +14,10 @@ DEBUG = env.bool("DEBUG", default=True)
 
 SECRET_KEY = env.str("SECRET_KEY", default="")
 
-# ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['192.168.1.6', 'localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+
 
 AUTH_USER_MODEL = "authentication.User"
-
-# AUTH_TwilioNumbers_MODEL = "authentication.TwilioNumbers"
 
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -52,7 +50,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-     "authentication.middlewares.ExceptionMiddleware",
+    "authentication.middlewares.ExceptionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -122,21 +120,20 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 
-
 APPEND_SLASH = False
 TWILIO_ACCOUNT_SID = env.str("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = env.str("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = env.str("TWILIO_PHONE_NUMBER")
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = env('EMAIL_HOST')
-EMAIL_PORT = env('EMAIL_PORT', default=587)
-EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_PORT = env("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 
-AWS_ACCESS_KEY_ID = env('S3_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = env('S3_SECRET_ACCESS_KEY')
-AWS_S3_BUCKET_NAME=env('AWS_S3_BUCKET_NAME')
+AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env("S3_SECRET_ACCESS_KEY")
+AWS_S3_BUCKET_NAME = env("AWS_S3_BUCKET_NAME")

@@ -6,13 +6,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0006_alter_agentdetails_id'),
+        ("ai_call_agent", "0006_alter_agentdetails_id"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='agentdetails',
-            name='gender',
-            field=models.CharField(choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other'), ('prefer_not_to_say', 'Prefer Not to Say')], default='male', max_length=20),
+            model_name="agentdetails",
+            name="gender",
+            field=models.CharField(
+                choices=[
+                    ("male", "Male"),
+                    ("female", "Female"),
+                    ("other", "Other"),
+                    ("prefer_not_to_say", "Prefer Not to Say"),
+                ],
+                default="male",
+                max_length=20,
+            ),
         ),
     ]

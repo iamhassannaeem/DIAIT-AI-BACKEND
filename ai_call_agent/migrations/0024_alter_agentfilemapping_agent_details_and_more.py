@@ -7,18 +7,28 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0023_file_agent_details'),
+        ("ai_call_agent", "0023_file_agent_details"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='agentfilemapping',
-            name='agent_details',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.salesagent'),
+            model_name="agentfilemapping",
+            name="agent_details",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_call_agent.salesagent",
+            ),
         ),
         migrations.AlterField(
-            model_name='agentfilemapping',
-            name='file',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.file'),
+            model_name="agentfilemapping",
+            name="file",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_call_agent.file",
+            ),
         ),
     ]

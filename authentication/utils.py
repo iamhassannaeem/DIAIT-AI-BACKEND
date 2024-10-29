@@ -1,9 +1,8 @@
-
-
 from twilio.rest import Client
 
 from django.core.mail import send_mail
 from django.conf import settings
+
 
 def send_email(subject, message, recipient_list):
     """
@@ -20,6 +19,7 @@ def send_email(subject, message, recipient_list):
         recipient_list,
         fail_silently=False,
     )
+
 
 def send_verification_code(phone_number, verification_code):
     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)

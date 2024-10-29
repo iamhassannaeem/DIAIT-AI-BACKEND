@@ -8,137 +8,323 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0010_remove_agentfilemapping_agent_and_more'),
+        ("ai_call_agent", "0010_remove_agentfilemapping_agent_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='AIModel',
+            name="AIModel",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ai_model', models.CharField(max_length=20)),
-                ('ai_model_provider', models.CharField(max_length=20)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("ai_model", models.CharField(max_length=20)),
+                ("ai_model_provider", models.CharField(max_length=20)),
             ],
         ),
         migrations.CreateModel(
-            name='AITec',
+            name="AITec",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ai_tec', models.CharField(max_length=20)),
-                ('ai_tec_provider', models.CharField(max_length=20)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("ai_tec", models.CharField(max_length=20)),
+                ("ai_tec_provider", models.CharField(max_length=20)),
             ],
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='agent_type',
+            model_name="agentdetails",
+            name="agent_type",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='audio',
+            model_name="agentdetails",
+            name="audio",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='feed_questions',
+            model_name="agentdetails",
+            name="feed_questions",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='model_type',
+            model_name="agentdetails",
+            name="model_type",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='prompt_files',
+            model_name="agentdetails",
+            name="prompt_files",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='stt_technology_provider',
+            model_name="agentdetails",
+            name="stt_technology_provider",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='technology_provider',
+            model_name="agentdetails",
+            name="technology_provider",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='tts_technology_provider',
+            model_name="agentdetails",
+            name="tts_technology_provider",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='twillio_number',
+            model_name="agentdetails",
+            name="twillio_number",
         ),
         migrations.RemoveField(
-            model_name='agentdetails',
-            name='user',
+            model_name="agentdetails",
+            name="user",
         ),
         migrations.CreateModel(
-            name='FeedbackAgent',
+            name="FeedbackAgent",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('active', models.BooleanField(default=False)),
-                ('gender', models.CharField(choices=[('male', 'Male'), ('female', 'Female')], default='male', max_length=20)),
-                ('voice_name', models.CharField(choices=[('alex', 'Alexa'), ('john', 'John')], default='male', max_length=20)),
-                ('ai_model', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aimodel')),
-                ('ai_tec', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aitec')),
-                ('prompt_files', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_prompt_files', to='ai_call_agent.file')),
-                ('stt_technology_provider', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_stt_technology_provider', to='ai_call_agent.aitec')),
-                ('tts_technology_provider', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_tts_technology_provider', to='ai_call_agent.aitec')),
-                ('twillio_number', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.twilionumbers')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='feedback_agents', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("active", models.BooleanField(default=False)),
+                (
+                    "gender",
+                    models.CharField(
+                        choices=[("male", "Male"), ("female", "Female")],
+                        default="male",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "voice_name",
+                    models.CharField(
+                        choices=[("alex", "Alexa"), ("john", "John")],
+                        default="male",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "ai_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.aimodel",
+                    ),
+                ),
+                (
+                    "ai_tec",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.aitec",
+                    ),
+                ),
+                (
+                    "prompt_files",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_prompt_files",
+                        to="ai_call_agent.file",
+                    ),
+                ),
+                (
+                    "stt_technology_provider",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_stt_technology_provider",
+                        to="ai_call_agent.aitec",
+                    ),
+                ),
+                (
+                    "tts_technology_provider",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_tts_technology_provider",
+                        to="ai_call_agent.aitec",
+                    ),
+                ),
+                (
+                    "twillio_number",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.twilionumbers",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="feedback_agents",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.AlterField(
-            model_name='agentfilemapping',
-            name='agent_details',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='agent_files', to='ai_call_agent.feedbackagent'),
+            model_name="agentfilemapping",
+            name="agent_details",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="agent_files",
+                to="ai_call_agent.feedbackagent",
+            ),
         ),
         migrations.CreateModel(
-            name='FeedbackQuestion',
+            name="FeedbackQuestion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('order', models.PositiveSmallIntegerField()),
-                ('question_text', models.CharField(max_length=255)),
-                ('feedback_agent', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.feedbackagent')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("order", models.PositiveSmallIntegerField()),
+                ("question_text", models.CharField(max_length=255)),
+                (
+                    "feedback_agent",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.feedbackagent",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='SalesAgent',
+            name="SalesAgent",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('active', models.BooleanField(default=False)),
-                ('gender', models.CharField(choices=[('male', 'Male'), ('female', 'Female')], default='male', max_length=20)),
-                ('voice_name', models.CharField(choices=[('alex', 'Alexa'), ('john', 'John')], default='male', max_length=20)),
-                ('ai_model', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aimodel')),
-                ('ai_tec', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aitec')),
-                ('prompt_files', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_prompt_files', to='ai_call_agent.file')),
-                ('stt_technology_provider', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_stt_technology_provider', to='ai_call_agent.aitec')),
-                ('tts_technology_provider', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_tts_technology_provider', to='ai_call_agent.aitec')),
-                ('twillio_number', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.twilionumbers')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sales_agents', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("active", models.BooleanField(default=False)),
+                (
+                    "gender",
+                    models.CharField(
+                        choices=[("male", "Male"), ("female", "Female")],
+                        default="male",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "voice_name",
+                    models.CharField(
+                        choices=[("alex", "Alexa"), ("john", "John")],
+                        default="male",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "ai_model",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.aimodel",
+                    ),
+                ),
+                (
+                    "ai_tec",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.aitec",
+                    ),
+                ),
+                (
+                    "prompt_files",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_prompt_files",
+                        to="ai_call_agent.file",
+                    ),
+                ),
+                (
+                    "stt_technology_provider",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_stt_technology_provider",
+                        to="ai_call_agent.aitec",
+                    ),
+                ),
+                (
+                    "tts_technology_provider",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_tts_technology_provider",
+                        to="ai_call_agent.aitec",
+                    ),
+                ),
+                (
+                    "twillio_number",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.twilionumbers",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sales_agents",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.DeleteModel(
-            name='Agent',
+            name="Agent",
         ),
         migrations.DeleteModel(
-            name='Voices',
+            name="Voices",
         ),
         migrations.DeleteModel(
-            name='FeedQuestion',
+            name="FeedQuestion",
         ),
         migrations.DeleteModel(
-            name='ModelType',
+            name="ModelType",
         ),
         migrations.DeleteModel(
-            name='TechProvider',
+            name="TechProvider",
         ),
         migrations.DeleteModel(
-            name='AgentDetails',
+            name="AgentDetails",
         ),
     ]

@@ -6,19 +6,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0032_campaignnumberlist_user'),
+        ("ai_call_agent", "0032_campaignnumberlist_user"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='twilionumbers',
-            name='account_api_secret',
+            model_name="twilionumbers",
+            name="account_api_secret",
             field=models.CharField(default=1, max_length=100),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='twilionumbers',
-            name='auth_api_key',
+            model_name="twilionumbers",
+            name="auth_api_key",
             field=models.CharField(default=1, max_length=100),
             preserve_default=False,
         ),

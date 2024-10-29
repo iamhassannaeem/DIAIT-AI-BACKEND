@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0005_remove_agentdetails_gender'),
+        ("ai_call_agent", "0005_remove_agentdetails_gender"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='agentdetails',
-            name='id',
+            model_name="agentdetails",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
     ]

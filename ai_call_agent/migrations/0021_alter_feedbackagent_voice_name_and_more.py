@@ -6,18 +6,28 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0020_alter_feedbackquestion_feedback_agent'),
+        ("ai_call_agent", "0020_alter_feedbackquestion_feedback_agent"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='feedbackagent',
-            name='voice_name',
-            field=models.CharField(blank=True, choices=[('alex', 'Alexa'), ('john', 'John')], max_length=20, null=True),
+            model_name="feedbackagent",
+            name="voice_name",
+            field=models.CharField(
+                blank=True,
+                choices=[("alex", "Alexa"), ("john", "John")],
+                max_length=20,
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='salesagent',
-            name='voice_name',
-            field=models.CharField(blank=True, choices=[('alex', 'Alexa'), ('john', 'John')], max_length=20, null=True),
+            model_name="salesagent",
+            name="voice_name",
+            field=models.CharField(
+                blank=True,
+                choices=[("alex", "Alexa"), ("john", "John")],
+                max_length=20,
+                null=True,
+            ),
         ),
     ]
