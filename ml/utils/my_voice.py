@@ -4,22 +4,19 @@ import requests
 from io import BytesIO
 
 
-
 ELEVEN_LABS_API_KEY = "sk_a6c595d8a81c5a4722ea1247846f54271db6687c784d428c"
-VOICE_ID = '21m00Tcm4TlvDq8ikWAM'
-OUTPUT_FORMAT = 'ulaw_8000'
+VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
+OUTPUT_FORMAT = "ulaw_8000"
+
 
 def get_audio_from_eleven_labs(text):
     """Calls the Eleven Labs API to convert text to speech."""
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
-    headers = {
-        'xi-api-key': ELEVEN_LABS_API_KEY,
-        'Content-Type': 'application/json'
-    }
+    headers = {"xi-api-key": ELEVEN_LABS_API_KEY, "Content-Type": "application/json"}
     payload = {
-        'text': text,
-        'model_id': 'eleven_turbo_v2',
-        'output_format': OUTPUT_FORMAT
+        "text": text,
+        "model_id": "eleven_turbo_v2",
+        "output_format": OUTPUT_FORMAT,
     }
 
     response = requests.post(url, headers=headers, json=payload, stream=True)

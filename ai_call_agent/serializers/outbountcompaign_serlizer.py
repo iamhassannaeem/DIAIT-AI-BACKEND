@@ -7,36 +7,45 @@ from .agent_creat_serilizer import AIModelSerializer, AITecSerializer, AIAudioSe
 class FeedbackQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FeedbackQuestion
-        fields = ['id', 'order', 'question_text']
+        fields = ["id", "order", "question_text"]
 
 
 class FeedbackAgentSerializer(serializers.ModelSerializer):
     feed_questions = FeedbackQuestionSerializer(many=True, read_only=True)
-    ai_model_details = AIModelSerializer(source='ai_model', read_only=True)
-    ai_tec_details = AITecSerializer(source='ai_tec', read_only=True)
-    voice_name_details = AIAudioSerializer(source='voice_name', read_only=True)
+    ai_model_details = AIModelSerializer(source="ai_model", read_only=True)
+    ai_tec_details = AITecSerializer(source="ai_tec", read_only=True)
+    voice_name_details = AIAudioSerializer(source="voice_name", read_only=True)
 
-
-    tts_technology_provider_details = AITecSerializer(source='tts_technology_provider', read_only=True)
-    stt_technology_provider_details = AITecSerializer(source='stt_technology_provider', read_only=True)
+    tts_technology_provider_details = AITecSerializer(
+        source="tts_technology_provider", read_only=True
+    )
+    stt_technology_provider_details = AITecSerializer(
+        source="stt_technology_provider", read_only=True
+    )
 
     class Meta:
         model = FeedbackAgent
         fields = [
-            'id', 'first_message', 'name', 'active', 'gender',
-            'created_date', 'user',
-            'tts_technology_provider_details',
-            'stt_technology_provider_details',
-            'feed_questions', 'ai_model_details', 'ai_tec_details',
-            'voice_name_details'
+            "id",
+            "first_message",
+            "name",
+            "active",
+            "gender",
+            "created_date",
+            "user",
+            "tts_technology_provider_details",
+            "stt_technology_provider_details",
+            "feed_questions",
+            "ai_model_details",
+            "ai_tec_details",
+            "voice_name_details",
         ]
-
 
 
 class CampaignNumberListSerializer(serializers.ModelSerializer):
     class Meta:
         model = CampaignNumberList
-        fields = ['id', 'phone_number', 'created_at']
+        fields = ["id", "phone_number", "created_at"]
 
 
 from rest_framework import serializers
@@ -51,7 +60,10 @@ class TwilioNumbers(serializers.ModelSerializer):
 class OutboundCampaignSerializer(serializers.ModelSerializer):
     number_list = CampaignNumberListSerializer(many=True, read_only=True)
     number_list_ids = serializers.PrimaryKeyRelatedField(
-        queryset=CampaignNumberList.objects.all(), many=True, write_only=True, required=False
+        queryset=CampaignNumberList.objects.all(),
+        many=True,
+        write_only=True,
+        required=False,
     )
     feedback_agent = FeedbackAgentSerializer()
 
@@ -60,25 +72,31 @@ class OutboundCampaignSerializer(serializers.ModelSerializer):
     class Meta:
         model = OutboundCampaign
         fields = [
-            'id', 'name', 'feedback_agent', 'start_time', 'end_time',
-            'time_zone', 'status', 'number_list', 'number_list_ids',
-            'twilio_number_details'
+            "id",
+            "name",
+            "feedback_agent",
+            "start_time",
+            "end_time",
+            "time_zone",
+            "status",
+            "number_list",
+            "number_list_ids",
+            "twilio_number_details",
         ]
 
     def get_twilio_number_details(self, obj):
-
 
         if obj.feedback_agent and obj.feedback_agent.twillio_number:
             try:
                 twilio_number = TwilioNumbers(obj.feedback_agent.twillio_number)
                 return twilio_number.data
             except Exception as e:
-                return {'error': str(e)}
+                return {"error": str(e)}
         return None
 
     def create(self, validated_data):
-        feedback_agent_data = validated_data.pop('feedback_agent', None)
-        number_list_ids = validated_data.pop('number_list_ids', [])
+        feedback_agent_data = validated_data.pop("feedback_agent", None)
+        number_list_ids = validated_data.pop("number_list_ids", [])
 
         campaign = OutboundCampaign.objects.create(**validated_data)
 
@@ -90,8 +108,8 @@ class OutboundCampaignSerializer(serializers.ModelSerializer):
         return campaign
 
     def update(self, instance, validated_data):
-        feedback_agent_data = validated_data.pop('feedback_agent', None)
-        number_list_ids = validated_data.pop('number_list_ids', [])
+        feedback_agent_data = validated_data.pop("feedback_agent", None)
+        number_list_ids = validated_data.pop("number_list_ids", [])
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

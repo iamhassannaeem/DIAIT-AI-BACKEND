@@ -7,13 +7,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0019_alter_feedbackagent_name_alter_salesagent_name'),
+        ("ai_call_agent", "0019_alter_feedbackagent_name_alter_salesagent_name"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='feedbackquestion',
-            name='feedback_agent',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='feed_questions', to='ai_call_agent.feedbackagent'),
+            model_name="feedbackquestion",
+            name="feedback_agent",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="feed_questions",
+                to="ai_call_agent.feedbackagent",
+            ),
         ),
     ]

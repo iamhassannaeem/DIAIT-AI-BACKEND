@@ -5,7 +5,7 @@ from ai_call_agent.models import File, FeedbackAgent, AgentFileMapping, SalesAge
 class AgentDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalesAgent
-        fields = ['name', 'active']
+        fields = ["name", "active"]
 
 
 class AgentFileMappingSerializer(serializers.ModelSerializer):
@@ -13,7 +13,7 @@ class AgentFileMappingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AgentFileMapping
-        fields = ['file', 'agent_details']
+        fields = ["file", "agent_details"]
 
 
 class FileSerializer(serializers.ModelSerializer):
@@ -21,7 +21,17 @@ class FileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ['id', 'file_name', 'file_type', 'request_id', 'file_size', 'content_type', 'last_modified', 'created_date', 'agent_details']
+        fields = [
+            "id",
+            "file_name",
+            "file_type",
+            "request_id",
+            "file_size",
+            "content_type",
+            "last_modified",
+            "created_date",
+            "agent_details",
+        ]
 
     def get_agent_details(self, obj):
         agent_mappings = obj.agentfilemapping_set.all()
@@ -31,6 +41,5 @@ class FileSerializer(serializers.ModelSerializer):
             key = (mapping.file_id, mapping.agent_details.id)
             if key not in unique_mappings:
                 unique_mappings[key] = mapping
-
 
         return AgentFileMappingSerializer(unique_mappings.values(), many=True).data

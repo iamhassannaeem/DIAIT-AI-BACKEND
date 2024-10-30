@@ -7,26 +7,48 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0008_remove_agentdetails_del_date_agentdetails_agent_name'),
+        ("ai_call_agent", "0008_remove_agentdetails_del_date_agentdetails_agent_name"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='file',
-            name='agent_details',
+            model_name="file",
+            name="agent_details",
         ),
         migrations.AlterField(
-            model_name='agentdetails',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+            model_name="agentdetails",
+            name="id",
+            field=models.BigAutoField(
+                auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+            ),
         ),
         migrations.CreateModel(
-            name='AgentFileMapping',
+            name="AgentFileMapping",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('mapped_date', models.DateTimeField(auto_now_add=True)),
-                ('agent', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.agentdetails')),
-                ('file', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.file')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("mapped_date", models.DateTimeField(auto_now_add=True)),
+                (
+                    "agent",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.agentdetails",
+                    ),
+                ),
+                (
+                    "file",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ai_call_agent.file",
+                    ),
+                ),
             ],
         ),
     ]

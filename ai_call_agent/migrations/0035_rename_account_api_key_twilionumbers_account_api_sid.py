@@ -6,13 +6,13 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0034_rename_auth_api_key_twilionumbers_account_api_key'),
+        ("ai_call_agent", "0034_rename_auth_api_key_twilionumbers_account_api_key"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='twilionumbers',
-            old_name='account_api_key',
-            new_name='account_api_sid',
+            model_name="twilionumbers",
+            old_name="account_api_key",
+            new_name="account_api_sid",
         ),
     ]

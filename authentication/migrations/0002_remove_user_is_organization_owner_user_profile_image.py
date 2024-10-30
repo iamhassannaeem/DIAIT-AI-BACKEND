@@ -6,17 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentication', '0001_initial'),
+        ("authentication", "0001_initial"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='user',
-            name='is_organization_owner',
+            model_name="user",
+            name="is_organization_owner",
         ),
         migrations.AddField(
-            model_name='user',
-            name='profile_image',
-            field=models.ImageField(null=True, upload_to='profile_images/'),
+            model_name="user",
+            name="profile_image",
+            field=models.ImageField(null=True, upload_to="profile_images/"),
         ),
     ]

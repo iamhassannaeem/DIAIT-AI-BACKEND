@@ -7,25 +7,43 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0021_alter_feedbackagent_voice_name_and_more'),
+        ("ai_call_agent", "0021_alter_feedbackagent_voice_name_and_more"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='AIAudio',
+            name="AIAudio",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ai_audio_provider', models.CharField(max_length=20)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("ai_audio_provider", models.CharField(max_length=20)),
             ],
         ),
         migrations.AlterField(
-            model_name='feedbackagent',
-            name='voice_name',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aiaudio'),
+            model_name="feedbackagent",
+            name="voice_name",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_call_agent.aiaudio",
+            ),
         ),
         migrations.AlterField(
-            model_name='salesagent',
-            name='voice_name',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='ai_call_agent.aiaudio'),
+            model_name="salesagent",
+            name="voice_name",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_call_agent.aiaudio",
+            ),
         ),
     ]

@@ -6,32 +6,32 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0028_agentfilemapping_description'),
+        ("ai_call_agent", "0028_agentfilemapping_description"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='salesagent',
-            name='company_information',
+            model_name="salesagent",
+            name="company_information",
         ),
         migrations.RemoveField(
-            model_name='salesagent',
-            name='general_information',
+            model_name="salesagent",
+            name="general_information",
         ),
         migrations.RemoveField(
-            model_name='salesagent',
-            name='pricing',
+            model_name="salesagent",
+            name="pricing",
         ),
         migrations.RemoveField(
-            model_name='salesagent',
-            name='product_information',
+            model_name="salesagent",
+            name="product_information",
         ),
         migrations.RemoveField(
-            model_name='salesagent',
-            name='product_pricing',
+            model_name="salesagent",
+            name="product_pricing",
         ),
         migrations.RemoveField(
-            model_name='salesagent',
-            name='prompt_files',
+            model_name="salesagent",
+            name="prompt_files",
         ),
     ]

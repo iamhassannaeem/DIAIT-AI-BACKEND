@@ -7,18 +7,28 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0014_remove_feedbackagent_prompt_files_and_more'),
+        ("ai_call_agent", "0014_remove_feedbackagent_prompt_files_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='agentfilemapping',
-            name='agent_details',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='agent_files', to='ai_call_agent.salesagent'),
+            model_name="agentfilemapping",
+            name="agent_details",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="agent_files",
+                to="ai_call_agent.salesagent",
+            ),
         ),
         migrations.AlterField(
-            model_name='file',
-            name='agent_details',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='agent_details', to='ai_call_agent.salesagent'),
+            model_name="file",
+            name="agent_details",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="agent_details",
+                to="ai_call_agent.salesagent",
+            ),
         ),
     ]
