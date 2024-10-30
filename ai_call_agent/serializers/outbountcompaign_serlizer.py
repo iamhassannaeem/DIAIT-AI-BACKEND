@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ai_call_agent.models import OutboundCampaign, CampaignNumberList, FeedbackAgent, FeedbackQuestion
-from ai_call_agent.serializers import TwilioNumbersSerializer
+# from ai_call_agent.serializers import TwilioNumbersSerializer
 from .agent_creat_serilizer import AIModelSerializer, AITecSerializer, AIAudioSerializer
 
 
@@ -39,6 +39,15 @@ class CampaignNumberListSerializer(serializers.ModelSerializer):
         fields = ['id', 'phone_number', 'created_at']
 
 
+from rest_framework import serializers
+# from ai_call_agent.models import TwilioNumbers
+# from ai_call_agent.models import TwilioNumbers
+from ai_call_agent.models import TwilioNumbers
+class TwilioNumbers(serializers.ModelSerializer):
+    class Meta:
+        model = TwilioNumbers
+        fields = ['id', 'user', 'phone_number', 'account_sid', 'account_auth_token', 'auth_token_label','status','created_date','usage_count','account_api_secret','account_api_sid']
+
 class OutboundCampaignSerializer(serializers.ModelSerializer):
     number_list = CampaignNumberListSerializer(many=True, read_only=True)
     number_list_ids = serializers.PrimaryKeyRelatedField(
@@ -61,7 +70,7 @@ class OutboundCampaignSerializer(serializers.ModelSerializer):
 
         if obj.feedback_agent and obj.feedback_agent.twillio_number:
             try:
-                twilio_number = TwilioNumbersSerializer(obj.feedback_agent.twillio_number)
+                twilio_number = TwilioNumbers(obj.feedback_agent.twillio_number)
                 return twilio_number.data
             except Exception as e:
                 return {'error': str(e)}
