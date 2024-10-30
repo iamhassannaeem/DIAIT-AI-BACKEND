@@ -7,13 +7,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0022_aiaudio_alter_feedbackagent_voice_name_and_more'),
+        ("ai_call_agent", "0022_aiaudio_alter_feedbackagent_voice_name_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='file',
-            name='agent_details',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='agent_details', to='ai_call_agent.salesagent'),
+            model_name="file",
+            name="agent_details",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="agent_details",
+                to="ai_call_agent.salesagent",
+            ),
         ),
     ]

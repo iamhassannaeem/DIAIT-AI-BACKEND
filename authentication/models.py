@@ -1,7 +1,7 @@
+from django.conf import settings
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
 
-from django.conf import settings
 
 class UserManager(BaseUserManager):
     def create_user(self, email, name, password=None):
@@ -36,8 +36,6 @@ class User(AbstractBaseUser):
     name = models.CharField(max_length=64)
     is_active = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
-    # is_organization_owner = models.BooleanField(null=True, default=False)
-
     is_email_verified = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -58,10 +56,6 @@ class User(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return True
 
-    # @property
-    # def is_staff(self):
-    #     return self.is_admin
-
 
 class ErrorLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -71,12 +65,10 @@ class ErrorLog(models.Model):
     user_agent = models.TextField(blank=True, null=True)
     user_ip = models.GenericIPAddressField(blank=True, null=True)
 
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, blank=True, null=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.error_type} at {self.timestamp}"
-
-
-

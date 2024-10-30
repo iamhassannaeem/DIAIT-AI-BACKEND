@@ -8,18 +8,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ai_call_agent', '0013_file_agent_details'),
+        ("ai_call_agent", "0013_file_agent_details"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='feedbackagent',
-            name='prompt_files',
+            model_name="feedbackagent",
+            name="prompt_files",
         ),
         migrations.AlterField(
-            model_name='salesagent',
-            name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='agent_details', to=settings.AUTH_USER_MODEL),
+            model_name="salesagent",
+            name="user",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="agent_details",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]
