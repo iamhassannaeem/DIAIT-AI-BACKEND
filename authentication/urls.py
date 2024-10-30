@@ -10,7 +10,7 @@ from .views import (
     login_view,
     reset_password_view_old,
     activate_view,
-    Forgot_pwd_request_view,
+    forgot_pwd_request_view,
     reset_password_view,
     resend_activation_email_view,
     verify_code_view,
@@ -20,7 +20,8 @@ router = DefaultRouter()
 
 urlpatterns = [
     path("register/", register_view, name="register"),
-    path("activate/", activate_view, name="activate"),
+    path('activate/<str:token>/', activate_view, name='activate'),
+   
     path(
         "request_new_activation/",
         resend_activation_email_view,
@@ -28,14 +29,10 @@ urlpatterns = [
     ),
     path("login/", login_view, name="login"),
     path("verify/code/", verify_code_view, name="verify_code"),
-    path(
-        "password_reset_request/",
-        Forgot_pwd_request_view,
-        name="password_reset_request",
-    ),
-    path(
-        "reset_password/<uidb64>/<token>/", reset_password_view, name="reset_password"
-    ),
+    
+    path("password_reset_request/", forgot_pwd_request_view, name="password_reset_request"),
+    path("reset_password/<str:token>/", reset_password_view, name="reset_password"),
+
     path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("reset/password/", reset_password_view_old, name="reset-password_old"),

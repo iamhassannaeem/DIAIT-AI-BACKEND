@@ -7,8 +7,9 @@ from .models import User
 class RegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(write_only=True)
-    first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
+    name  = serializers.CharField(required=True)
+    # first_name = serializers.CharField(required=True)
+    # last_name = serializers.CharField(required=True)
 
 
 class LoginSerializer(serializers.Serializer):
