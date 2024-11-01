@@ -1,5 +1,5 @@
 from rest_framework import routers
-from .views import TwilioNumbersViewSet, FileViewSet, InputDataView, AgentViewSet
+from .views import TwilioNumbersViewSet,FileViewSet,InputDataView,AgentViewSet,FeedbackQuestionViewSet
 from .views import CampaignNumberListViewSet, OutboundCampaignViewSet
 from django.urls import path, include
 
@@ -19,6 +19,8 @@ router.register("agents/InputData", InputDataView, basename="InputData")
 router.register("twillio_auth", TwilioNumbersViewSet, basename="twillio_auth")
 
 router.register("library", FileViewSet, basename="library")
+
+router.register(r'feedback-questions', FeedbackQuestionViewSet)
 
 urlpatterns = [
     path(

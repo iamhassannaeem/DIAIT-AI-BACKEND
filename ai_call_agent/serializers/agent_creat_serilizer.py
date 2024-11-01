@@ -49,14 +49,12 @@ class AITecSerializer(serializers.ModelSerializer):
 class FeedbackQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FeedbackQuestion
-        fields = ["order", "question_text"]
-
+        fields = ['order', 'question_text','id']
 
 class AgentFileMappingSerializer(serializers.ModelSerializer):
     class Meta:
         model = AgentFileMapping
-        fields = ["file"]
-
+        fields = ['id','file']
 
 class FeedbackAgentDetailsSerializer(serializers.ModelSerializer):
     feed_questions = FeedbackQuestionSerializer(many=True, required=False)
@@ -135,10 +133,9 @@ class SalesAgentDetailsSerializer(serializers.ModelSerializer):
             AgentFileMapping.objects.filter(agent_details=instance)
         )
 
-        #
-        current_file_types = {
-            mapping.file_type: mapping for mapping in existing_mappings
-        }
+
+        current_file_types = {mapping.file_type: mapping for mapping in existing_mappings}
+
 
         for file_entry in files_data:
             file_type = file_entry.get("file_type")
@@ -155,17 +152,23 @@ class SalesAgentDetailsSerializer(serializers.ModelSerializer):
                 else:
 
                     AgentFileMapping.objects.create(
-                        agent_details=instance, file_type=file_type, file=file_instance
+                        agent_details=instance,
+                        file_type=file_type,
+                        file=file_instance,
+
                     )
 
         return instance
 
     def get_associated_files(self, obj):
+
         mappings = AgentFileMapping.objects.filter(agent_details=obj)
+
         return [
             {
-                "file_name": mapping.file.file_name,
-                "file_type": mapping.file_type,
+                'file_id': mapping.file.id,
+                'file_name': mapping.file.file_name,
+                'file_type': mapping.file_type,
             }
             for mapping in mappings
         ]

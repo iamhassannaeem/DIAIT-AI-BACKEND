@@ -18,6 +18,11 @@ from ai_call_agent.serializers import (
     File_agentSerializer,
 )
 
+from ai_call_agent.models import FeedbackQuestion
+from ai_call_agent.serializers import FeedbackQuestionSerializer
+
+
+
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from django.shortcuts import get_object_or_404
@@ -84,8 +89,9 @@ class AgentViewSet(viewsets.ViewSet):
         )
 
     def update(self, request, pk=None):
-        agent_type = request.data.get("agent_type")
-        if agent_type == "feedback":
+        agent_type = request.data.get('agent_type')
+
+        if agent_type == 'feedback':
             agent = FeedbackAgent.objects.get(pk=pk)
             serializer = FeedbackAgentDetailsSerializer(
                 agent, data=request.data, context={"request": request}
@@ -154,3 +160,9 @@ class InputDataView(viewsets.ViewSet):
         }
 
         return Response(response_data)
+
+
+
+class FeedbackQuestionViewSet(viewsets.ModelViewSet):
+    queryset = FeedbackQuestion.objects.all()
+    serializer_class = FeedbackQuestionSerializer
