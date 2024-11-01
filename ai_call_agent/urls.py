@@ -1,16 +1,22 @@
-from rest_framework import routers
-from .views import TwilioNumbersViewSet,FileViewSet,InputDataView,AgentViewSet,FeedbackQuestionViewSet
-from .views import CampaignNumberListViewSet, OutboundCampaignViewSet
 from django.urls import path, include
+from rest_framework import routers
+
+from .views import OutboundCampaignViewSet, CallDetailsViewSet
+from .views import (
+    TwilioNumbersViewSet,
+    FileViewSet,
+    InputDataView,
+    AgentViewSet,
+    FeedbackQuestionViewSet,
+)
 
 router = routers.DefaultRouter()
 
+
 router.register(
-    r"campaign-numbers", CampaignNumberListViewSet, basename="campaign-numbers"
+    r"outbound/campaigns", OutboundCampaignViewSet, basename="outbound-campaigns"
 )
-router.register(
-    r"outbound-campaigns", OutboundCampaignViewSet, basename="outbound-campaigns"
-)
+router.register(r"call/details", CallDetailsViewSet, basename="call-details")
 
 router.register("agent", AgentViewSet, basename="agent")
 router.register("agents/InputData", InputDataView, basename="InputData")
@@ -20,7 +26,7 @@ router.register("twillio_auth", TwilioNumbersViewSet, basename="twillio_auth")
 
 router.register("library", FileViewSet, basename="library")
 
-router.register(r'feedback-questions', FeedbackQuestionViewSet)
+router.register(r"feedback-questions", FeedbackQuestionViewSet)
 
 urlpatterns = [
     path(
