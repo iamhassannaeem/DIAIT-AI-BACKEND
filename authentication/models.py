@@ -1,10 +1,6 @@
-import random
-from datetime import timedelta
-
 from django.conf import settings
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
-from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
@@ -44,10 +40,6 @@ class User(AbstractBaseUser):
     is_email_verified = models.BooleanField(default=False)
     first_login_time = models.DateTimeField(null=True, blank=True)
     is_trusted = models.BooleanField(default=False)
-
-    verification_code = models.CharField(max_length=6, blank=True, null=True)
-    verification_code_expires_at = models.DateTimeField(blank=True, null=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -64,11 +56,6 @@ class User(AbstractBaseUser):
 
     def has_module_perms(self, app_label):
         return True
-
-    def set_verification_code(self):
-        self.verification_code = str(random.randint(100000, 999999))
-        self.verification_code_expires_at = timezone.now() + timedelta(minutes=1)
-        self.save()
 
 
 class ErrorLog(models.Model):

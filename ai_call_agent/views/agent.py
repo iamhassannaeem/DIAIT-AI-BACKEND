@@ -1,13 +1,17 @@
+from django.shortcuts import get_object_or_404
+from rest_framework import status, viewsets
+from rest_framework.response import Response
+
 from ai_call_agent.models import (
     FeedbackAgent,
     SalesAgent,
     AIAudio,
     AIModel,
     AITec,
-    Agent,
     TwilioNumbers,
     File,
 )
+from ai_call_agent.models import FeedbackQuestion
 from ai_call_agent.serializers import (
     FeedbackAgentDetailsSerializer,
     SalesAgentDetailsSerializer,
@@ -17,15 +21,7 @@ from ai_call_agent.serializers import (
     Twilio_agentNumberSerializer,
     File_agentSerializer,
 )
-
-from ai_call_agent.models import FeedbackQuestion
 from ai_call_agent.serializers import FeedbackQuestionSerializer
-
-
-
-from rest_framework.response import Response
-from rest_framework import status, viewsets
-from django.shortcuts import get_object_or_404
 
 
 class AgentViewSet(viewsets.ViewSet):
@@ -89,10 +85,11 @@ class AgentViewSet(viewsets.ViewSet):
         )
 
     def update(self, request, pk=None):
-        agent_type = request.data.get('agent_type')
+        agent_type = request.data.get("agent_type")
 
-        if agent_type == 'feedback':
+        if agent_type == "feedback":
             agent = FeedbackAgent.objects.get(pk=pk)
+            print(agent)
             serializer = FeedbackAgentDetailsSerializer(
                 agent, data=request.data, context={"request": request}
             )
@@ -160,7 +157,6 @@ class InputDataView(viewsets.ViewSet):
         }
 
         return Response(response_data)
-
 
 
 class FeedbackQuestionViewSet(viewsets.ModelViewSet):

@@ -1,4 +1,6 @@
 from rest_framework import serializers
+
+from ai_call_agent.models import AIModel, AITec, AIAudio, TwilioNumbers
 from ai_call_agent.models import (
     FeedbackAgent,
     SalesAgent,
@@ -6,7 +8,6 @@ from ai_call_agent.models import (
     AgentFileMapping,
     FeedbackQuestion,
 )
-from ai_call_agent.models import AIModel, AITec, AIAudio, TwilioNumbers
 
 
 class Twilio_agentNumberSerializer(serializers.ModelSerializer):
@@ -49,12 +50,14 @@ class AITecSerializer(serializers.ModelSerializer):
 class FeedbackQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FeedbackQuestion
-        fields = ['order', 'question_text','id']
+        fields = ["order", "question_text", "id"]
+
 
 class AgentFileMappingSerializer(serializers.ModelSerializer):
     class Meta:
         model = AgentFileMapping
-        fields = ['id','file']
+        fields = ["id", "file"]
+
 
 class FeedbackAgentDetailsSerializer(serializers.ModelSerializer):
     feed_questions = FeedbackQuestionSerializer(many=True, required=False)
@@ -132,15 +135,12 @@ class SalesAgentDetailsSerializer(serializers.ModelSerializer):
         existing_mappings = list(
             AgentFileMapping.objects.filter(agent_details=instance)
         )
-
-
-        current_file_types = {mapping.file_type: mapping for mapping in existing_mappings}
-
-
+        current_file_types = {
+            mapping.file_type: mapping for mapping in existing_mappings
+        }
         for file_entry in files_data:
             file_type = file_entry.get("file_type")
             file_id = file_entry.get("file")
-
             if file_type and file_id:
 
                 file_instance = File.objects.get(id=file_id)
@@ -155,9 +155,7 @@ class SalesAgentDetailsSerializer(serializers.ModelSerializer):
                         agent_details=instance,
                         file_type=file_type,
                         file=file_instance,
-
                     )
-
         return instance
 
     def get_associated_files(self, obj):
@@ -166,64 +164,9 @@ class SalesAgentDetailsSerializer(serializers.ModelSerializer):
 
         return [
             {
-                'file_id': mapping.file.id,
-                'file_name': mapping.file.file_name,
-                'file_type': mapping.file_type,
+                "file_id": mapping.file.id,
+                "file_name": mapping.file.file_name,
+                "file_type": mapping.file_type,
             }
             for mapping in mappings
         ]
-
-
-# class SalesAgentDetailsSerializer(serializers.ModelSerializer):
-#     files = serializers.ListField(
-#         child=serializers.DictField(),
-#         required=False
-#     )
-#
-#     class Meta:
-#         model = SalesAgent
-#         fields = '__all__'
-#         extra_kwargs = {'user': {'read_only': True}}
-#
-#     def _create_mappings(self, agent, file_data):
-#
-#         for file_entry in file_data:
-#             file_type = file_entry.get('file_type')
-#             file_id = file_entry.get('file')
-#             if file_type and file_id:
-#                 file_instance = File.objects.get(id=file_id)
-#                 AgentFileMapping.objects.create(
-#                     agent_details=agent,
-#                     file=file_instance,
-#                     file_type=file_type
-#                 )
-#
-#     def create(self, validated_data):
-#         user = self.context['request'].user
-#         files_data = validated_data.pop('files', [])
-#
-#
-#         sales_agent = SalesAgent.objects.create(user=user, **validated_data)
-#
-#
-#         self._create_mappings(sales_agent, files_data)
-#
-#         return sales_agent
-#
-#     def update(self, instance, validated_data):
-#         user = self.context['request'].user
-#         files_data = validated_data.pop('files', [])
-#
-#
-#         for attr, value in validated_data.items():
-#             setattr(instance, attr, value)
-#         instance.user = user
-#         instance.save()
-#
-#
-#         AgentFileMapping.objects.filter(agent_details=instance).delete()
-#
-#
-#         self._create_mappings(instance, files_data)
-#
-#         return instance

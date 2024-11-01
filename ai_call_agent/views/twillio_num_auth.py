@@ -1,12 +1,13 @@
+from django.contrib.auth import get_user_model
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from twilio.rest import Client
+from rest_framework.response import Response
 from twilio.base.exceptions import TwilioException
+from twilio.rest import Client
+
 from ai_call_agent.models import TwilioNumbers
 from ai_call_agent.serializers import TwilioNumbersSerializer
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 

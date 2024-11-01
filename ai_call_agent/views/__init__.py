@@ -1,5 +1,4 @@
-from .agent_creat import InputDataView,AgentViewSet,FeedbackQuestionViewSet
-
-from .twillio_num_auth import TwilioNumbersViewSet
+from .agent import InputDataView, AgentViewSet, FeedbackQuestionViewSet
 from .library import FileViewSet
-from .outbound_compaign import CampaignNumberListViewSet, OutboundCampaignViewSet
+from .outbound_compaign import OutboundCampaignViewSet, CallDetailsViewSet
+from .twillio_num_auth import TwilioNumbersViewSet

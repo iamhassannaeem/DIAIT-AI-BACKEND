@@ -167,7 +167,7 @@ def forgot_pwd_request_view(request):
 
     try:
         user = User.objects.get(email=email)
-
+        print(user)
         send_password_reset_email(user, request)
         return Response(
             {"message": "Password reset link has been sent to your email."},
@@ -265,11 +265,6 @@ def login_view(request):
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
-            update_serializer = UpdateTrustedStatusSerializer(
-                user, data={"is_trusted": is_trusted}, partial=True
-            )
-            update_serializer.is_valid(raise_exception=True)
-            update_serializer.save()
 
             return Response(
                 {
@@ -281,13 +276,14 @@ def login_view(request):
             )
 
         verification_code = str(random.randint(100000, 999999)).zfill(6)
+
         payload = {
             "email": user.email,
             "verification_code": verification_code,
             "exp": timezone.now() + timedelta(minutes=5),
         }
 
-        jwt_token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
         send_mail(
             "Your Verification Code",
@@ -300,7 +296,7 @@ def login_view(request):
         return Response(
             {
                 "message": "Login successful. Check your email for the verification code.",
-                "jwt_token": jwt_token,
+                "token": token,
                 "is_trusted": is_trusted,
             },
             status=status.HTTP_200_OK,
@@ -315,13 +311,14 @@ def login_view(request):
 @permission_classes([AllowAny])
 def verify_code_view(request):
     data = request.data
-    jwt_token = data.get("jwt_token")
+    print(data)
+    token = data.get("token")
     verification_code = data.get("verification_code")
     is_trusted = data.get("is_trusted")
 
     try:
 
-        payload = jwt.decode(jwt_token, settings.SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         user_email = payload["email"]
         original_code = payload["verification_code"]
 
@@ -337,6 +334,7 @@ def verify_code_view(request):
         )
         update_serializer.is_valid(raise_exception=True)
         update_serializer.save()
+
         user.is_active = True
         user.first_login_time = (
             timezone.now() if not user.first_login_time else user.first_login_time

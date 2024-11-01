@@ -1,6 +1,5 @@
-from django.db import models
 from django.conf import settings
-from pytz import common_timezones
+from django.db import models
 
 
 class TwilioNumbers(models.Model):
@@ -127,10 +126,10 @@ class SalesAgent(Agent):
 
 class FeedbackQuestion(models.Model):
     order = models.PositiveSmallIntegerField()
-    question_text = models.CharField(max_length=255)  # Set an appropriate max_length
+    question_text = models.CharField(max_length=255)
     feedback_agent = models.ForeignKey(
         FeedbackAgent, related_name="feed_questions", on_delete=models.CASCADE
-    )  # Add this line
+    )
 
     def __str__(self):
         return self.question_text
@@ -178,39 +177,72 @@ class AgentFileMapping(models.Model):
         return f"{self.file} mapped as {self.get_file_type_display()} for {self.agent_details}"
 
 
+class TimeZone(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    offset = models.CharField(max_length=10)
+
+    def __str__(self):
+        return self.name
+
+
+class OutboundCampaign(models.Model):
+    name = models.CharField(max_length=100)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    time_zone = models.ForeignKey(TimeZone, on_delete=models.CASCADE)
+    status = models.CharField(max_length=50)
+    feedback_agent = models.ForeignKey(FeedbackAgent, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name
+
+
 class CampaignNumberList(models.Model):
     phone_number = models.CharField(max_length=15)
+    outbound_campaign = models.ForeignKey(
+        OutboundCampaign,
+        related_name="campaign_numbers",
+        on_delete=models.CASCADE,
+        null=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.phone_number
 
 
-class OutboundCampaign(models.Model):
-    STATUS_CHOICES = [
-        ("scheduled", "Scheduled"),
-        ("in_progress", "In Progress"),
-        ("completed", "Completed"),
-        ("canceled", "Canceled"),
-    ]
-
-    feedback_agent = models.ForeignKey(
-        "FeedbackAgent", on_delete=models.CASCADE, related_name="outbound_campaigns"
+class CallDetails(models.Model):
+    campaign_number = models.ForeignKey(
+        CampaignNumberList, on_delete=models.CASCADE, related_name="call_details"
     )
-    name = models.CharField(max_length=100)
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    time_zone = models.CharField(
-        max_length=50, choices=[(tz, tz) for tz in common_timezones]
+    call_duration = models.DurationField(null=True, blank=True)
+    conversation = models.TextField(null=True, blank=True)
+    ended_reason = models.CharField(
+        max_length=20,
+        choices=[
+            ("completed", "Completed"),
+            ("missed", "Missed"),
+            ("busy", "Busy"),
+        ],
+        default="completed",
     )
     status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="scheduled"
+        max_length=20,
+        choices=[
+            ("completed", "Completed"),
+            ("pending", "Pending"),
+            ("start", "Start"),
+        ],
+        default="pending",
     )
-    number_list = models.ManyToManyField(CampaignNumberList, related_name="campaigns")
+
+    type = models.CharField(max_length=50, null=True, blank=True)
+    call_id = models.CharField(max_length=100, null=True, blank=True)
+    call_cost = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    assistant = models.CharField(max_length=100, null=True, blank=True)
+    customer = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
-        return f"Campaign: {self.name}, Status: {self.status}"
-
-    def get_number_count(self):
-        return self.number_list.count()
+        return f"Call {self.call_id} - {self.status} - {self.ended_reason}"

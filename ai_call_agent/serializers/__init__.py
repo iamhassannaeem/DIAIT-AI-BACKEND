@@ -1,11 +1,4 @@
-from .twillio_auth_serilizer import TwilioNumbersSerializer
-from .library_serilizer import FileSerializer
-from .outbountcompaign_serlizer import (
-    CampaignNumberListSerializer,
-    OutboundCampaignSerializer,
-)
-
-from .agent_creat_serilizer import (
+from .agent import (
     FeedbackQuestionSerializer,
     AgentFileMappingSerializer,
     FeedbackAgentDetailsSerializer,
@@ -16,3 +9,6 @@ from .agent_creat_serilizer import (
     Twilio_agentNumberSerializer,
     File_agentSerializer,
 )
+from .library_serilizer import FileSerializer
+from .outbountcompaign_serlizer import OutboundCampaignSerializer, CallDetailsSerializer
+from .twillio_auth_serilizer import TwilioNumbersSerializer
