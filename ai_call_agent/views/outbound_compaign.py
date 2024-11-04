@@ -1,33 +1,54 @@
 from django.contrib.auth import get_user_model
-from rest_framework import status
-from rest_framework import viewsets
+from django.db.models import Q
+from rest_framework import status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ai_call_agent.models import OutboundCampaign, FeedbackAgent, CallDetails
-from ai_call_agent.serializers import OutboundCampaignSerializer, CallDetailsSerializer
+from ai_call_agent.models import Campaign, CallDetails, FeedbackAgent, SalesAgent
+from ai_call_agent.serializers import CampaignSerializer, CallDetailsSerializer
 
 User = get_user_model()
 
 
-class OutboundCampaignViewSet(viewsets.ModelViewSet):
+class CampaignViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    serializer_class = OutboundCampaignSerializer
+    serializer_class = CampaignSerializer
 
     def get_queryset(self):
-        return OutboundCampaign.objects.filter(feedback_agent__user=self.request.user)
+        feedback_agent_ids = FeedbackAgent.objects.filter(
+            user=self.request.user
+        ).values("id")
+        sales_agent_ids = SalesAgent.objects.filter(user=self.request.user).values("id")
+
+        return Campaign.objects.filter(
+            Q(feedback_agent__in=feedback_agent_ids)
+            | Q(sales_agent__in=sales_agent_ids)
+        )
 
     def perform_create(self, serializer):
         feedback_agents = FeedbackAgent.objects.filter(user=self.request.user)
+        sales_agents = SalesAgent.objects.filter(user=self.request.user)
 
-        if not feedback_agents.exists():
+        if not feedback_agents.exists() and not sales_agents.exists():
             raise PermissionDenied(
-                "You do not have a feedback agent associated with your account."
+                "No feedback or sales agent associated with your account."
             )
 
-        feedback_agent = feedback_agents.first()
-        serializer.save(feedback_agent=feedback_agent)
+        campaign_type = serializer.validated_data.get("type")
+        if campaign_type == 1:
+            feedback_agent = feedback_agents.first()
+            campaign = serializer.save(feedback_agent=feedback_agent)
+        elif campaign_type == 2:
+            sales_agent = sales_agents.first()
+            campaign = serializer.save(sales_agent=sales_agent)
+
+        call_details_data = self.request.data.get("call_details", [])
+        for call_data in call_details_data:
+            call_data["campaign"] = campaign.id
+            call_detail_serializer = CallDetailsSerializer(data=call_data)
+            call_detail_serializer.is_valid(raise_exception=True)
+            call_detail_serializer.save()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

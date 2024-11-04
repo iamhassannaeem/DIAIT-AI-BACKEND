@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework import routers
 
-from .views import OutboundCampaignViewSet, CallDetailsViewSet
+from .views import CampaignViewSet, CallDetailsViewSet
 from .views import (
     TwilioNumbersViewSet,
     FileViewSet,
@@ -13,10 +13,8 @@ from .views import (
 router = routers.DefaultRouter()
 
 
-router.register(
-    r"outbound/campaigns", OutboundCampaignViewSet, basename="outbound-campaigns"
-)
-router.register(r"call/details", CallDetailsViewSet, basename="call-details")
+router.register(r"outbound/campaigns", CampaignViewSet, basename="outbound-campaigns")
+router.register(r"call/details", CallDetailsViewSet, basename="call-dtaeils")
 
 router.register("agent", AgentViewSet, basename="agent")
 router.register("agents/InputData", InputDataView, basename="InputData")

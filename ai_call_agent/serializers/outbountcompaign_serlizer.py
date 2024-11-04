@@ -1,14 +1,13 @@
 from rest_framework import serializers
 
 from ai_call_agent.models import (
-    OutboundCampaign,
+    Campaign,
     FeedbackAgent,
-    CampaignNumberList,
     FeedbackQuestion,
     CallDetails,
+    TimeZone,
+    SalesAgent,
 )
-from .agent import AIModelSerializer, AITecSerializer, AIAudioSerializer
-from .twillio_auth_serilizer import TwilioNumbersSerializer
 
 
 class FeedbackQuestionSerializer(serializers.ModelSerializer):
@@ -19,127 +18,69 @@ class FeedbackQuestionSerializer(serializers.ModelSerializer):
 
 class FeedbackAgentSerializer(serializers.ModelSerializer):
     feed_questions = FeedbackQuestionSerializer(many=True, read_only=True)
-    ai_model_details = AIModelSerializer(source="ai_model", read_only=True)
-    ai_tec_details = AITecSerializer(source="ai_tec", read_only=True)
-    voice_name_details = AIAudioSerializer(source="voice_name", read_only=True)
-
-    tts_technology_provider_details = AITecSerializer(
-        source="tts_technology_provider", read_only=True
-    )
-    stt_technology_provider_details = AITecSerializer(
-        source="stt_technology_provider", read_only=True
-    )
 
     class Meta:
         model = FeedbackAgent
         fields = [
             "id",
-            "first_message",
             "name",
             "active",
             "gender",
             "created_date",
             "user",
-            "tts_technology_provider_details",
-            "stt_technology_provider_details",
             "feed_questions",
-            "ai_model_details",
-            "ai_tec_details",
-            "voice_name_details",
         ]
-
-
-class CampaignNumberListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CampaignNumberList
-        fields = ["id", "phone_number", "created_at"]
-
-
-class OutboundCampaignSerializer(serializers.ModelSerializer):
-    feedback_agent = serializers.PrimaryKeyRelatedField(
-        queryset=FeedbackAgent.objects.all()
-    )
-    feedback_agent_details = FeedbackAgentSerializer(
-        source="feedback_agent", read_only=True
-    )
-    phone_numbers = serializers.ListField(
-        child=serializers.CharField(max_length=15), write_only=True
-    )
-    campaign_numbers = serializers.SerializerMethodField()
-    twilio_number_details = serializers.SerializerMethodField()
-
-    class Meta:
-        model = OutboundCampaign
-        fields = [
-            "id",
-            "name",
-            "feedback_agent",
-            "feedback_agent_details",
-            "start_time",
-            "end_time",
-            "time_zone",
-            "status",
-            "phone_numbers",
-            "campaign_numbers",
-            "twilio_number_details",  #
-        ]
-
-    def get_campaign_numbers(self, obj):
-        return CampaignNumberListSerializer(obj.campaign_numbers.all(), many=True).data
-
-    def get_twilio_number_details(self, obj):
-
-        if obj.feedback_agent and obj.feedback_agent.twillio_number:
-            try:
-
-                twilio_number = obj.feedback_agent.twillio_number
-                return TwilioNumbersSerializer(twilio_number).data
-            except Exception as e:
-                return {"error": str(e)}
-        return None
-
-    def create(self, validated_data):
-        phone_numbers = validated_data.pop("phone_numbers")
-        campaign = OutboundCampaign.objects.create(**validated_data)
-
-        for phone in phone_numbers:
-            CampaignNumberList.objects.create(
-                phone_number=phone, outbound_campaign=campaign
-            )
-
-        return campaign
-
-    def update(self, instance, validated_data):
-        phone_numbers = validated_data.pop("phone_numbers", None)
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        if phone_numbers is not None:
-
-            instance.campaign_numbers.all().delete()
-            for phone in phone_numbers:
-                CampaignNumberList.objects.create(
-                    phone_number=phone, outbound_campaign=instance
-                )
-
-        instance.save()
-        return instance
 
 
 class CallDetailsSerializer(serializers.ModelSerializer):
+    campaign = serializers.PrimaryKeyRelatedField(queryset=Campaign.objects.all())
+
     class Meta:
         model = CallDetails
         fields = [
             "id",
-            "campaign_number",
-            "call_duration",
+            "phone_number",
+            "tag",
+            "call_start_time",
+            "call_end_time",
             "conversation",
-            "ended_reason",
+            "status",
+            "call_cost",
+            "campaign",
+        ]
+
+
+class CampaignSerializer(serializers.ModelSerializer):
+    timezone = serializers.PrimaryKeyRelatedField(queryset=TimeZone.objects.all())
+    feedback_agent = serializers.PrimaryKeyRelatedField(
+        queryset=FeedbackAgent.objects.all(), required=False
+    )
+    sales_agent = serializers.PrimaryKeyRelatedField(
+        queryset=SalesAgent.objects.all(), required=False
+    )
+    call_details = CallDetailsSerializer(many=True)
+
+    class Meta:
+        model = Campaign
+        fields = [
+            "id",
+            "agent_name",
+            "datetime",
+            "timezone",
             "status",
             "type",
-            "call_id",
-            "call_cost",
-            "assistant",
-            "customer",
+            "feedback_agent",
+            "sales_agent",
+            "call_details",
         ]
+
+    def create(self, validated_data):
+        call_details_data = validated_data.pop("call_details")
+        campaign = Campaign.objects.create(**validated_data)
+
+        # Set the campaign for each call detail and save
+        for call_detail in call_details_data:
+            call_detail["campaign"] = campaign  # Set the campaign field
+            CallDetails.objects.create(**call_detail)
+
+        return campaign

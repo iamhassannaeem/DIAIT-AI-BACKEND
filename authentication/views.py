@@ -167,7 +167,6 @@ def forgot_pwd_request_view(request):
 
     try:
         user = User.objects.get(email=email)
-        print(user)
         send_password_reset_email(user, request)
         return Response(
             {"message": "Password reset link has been sent to your email."},
@@ -247,11 +246,9 @@ def reset_password_view_old(request):
 def login_view(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-
     email = serializer.validated_data["email"]
     password = serializer.validated_data["password"]
     is_trusted = serializer.validated_data.get("is_trusted", False)
-
     user = authenticate(request, email=email, password=password)
 
     if user is not None:
@@ -311,7 +308,6 @@ def login_view(request):
 @permission_classes([AllowAny])
 def verify_code_view(request):
     data = request.data
-    print(data)
     token = data.get("token")
     verification_code = data.get("verification_code")
     is_trusted = data.get("is_trusted")

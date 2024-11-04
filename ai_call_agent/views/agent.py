@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ai_call_agent.models import (
@@ -10,8 +11,8 @@ from ai_call_agent.models import (
     AITec,
     TwilioNumbers,
     File,
+    FeedbackQuestion,
 )
-from ai_call_agent.models import FeedbackQuestion
 from ai_call_agent.serializers import (
     FeedbackAgentDetailsSerializer,
     SalesAgentDetailsSerializer,
@@ -20,11 +21,13 @@ from ai_call_agent.serializers import (
     AIAudioSerializer,
     Twilio_agentNumberSerializer,
     File_agentSerializer,
+    FeedbackQuestionSerializer,
 )
-from ai_call_agent.serializers import FeedbackQuestionSerializer
 
 
 class AgentViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
     def create(self, request):
         agent_type = request.data.get("agent_type")
 
@@ -48,12 +51,11 @@ class AgentViewSet(viewsets.ViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def retrieve(self, request, pk=None, agent_type=None):
-
         if agent_type == "feedback":
-            agent = get_object_or_404(FeedbackAgent, pk=pk)
+            agent = get_object_or_404(FeedbackAgent, pk=pk, user=request.user)
             serializer = FeedbackAgentDetailsSerializer(agent)
         elif agent_type == "sales":
-            agent = get_object_or_404(SalesAgent, pk=pk)
+            agent = get_object_or_404(SalesAgent, pk=pk, user=request.user)
             serializer = SalesAgentDetailsSerializer(agent)
         else:
             return Response(
@@ -64,9 +66,12 @@ class AgentViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def list(self, request):
-
-        feedback_agents = FeedbackAgent.objects.all().order_by("created_date")
-        sales_agents = SalesAgent.objects.all().order_by("created_date")
+        feedback_agents = FeedbackAgent.objects.filter(user=request.user).order_by(
+            "created_date"
+        )
+        sales_agents = SalesAgent.objects.filter(user=request.user).order_by(
+            "created_date"
+        )
 
         feedback_data = FeedbackAgentDetailsSerializer(feedback_agents, many=True).data
         sales_data = SalesAgentDetailsSerializer(sales_agents, many=True).data
@@ -88,13 +93,12 @@ class AgentViewSet(viewsets.ViewSet):
         agent_type = request.data.get("agent_type")
 
         if agent_type == "feedback":
-            agent = FeedbackAgent.objects.get(pk=pk)
-            print(agent)
+            agent = get_object_or_404(FeedbackAgent, pk=pk, user=request.user)
             serializer = FeedbackAgentDetailsSerializer(
                 agent, data=request.data, context={"request": request}
             )
         elif agent_type == "sales":
-            agent = SalesAgent.objects.get(pk=pk)
+            agent = get_object_or_404(SalesAgent, pk=pk, user=request.user)
             serializer = SalesAgentDetailsSerializer(
                 agent, data=request.data, context={"request": request}
             )
@@ -113,9 +117,9 @@ class AgentViewSet(viewsets.ViewSet):
         agent_type = request.data.get("agent_type")
 
         if agent_type == "feedback":
-            agent = get_object_or_404(FeedbackAgent, pk=pk)
+            agent = get_object_or_404(FeedbackAgent, pk=pk, user=request.user)
         elif agent_type == "sales":
-            agent = get_object_or_404(SalesAgent, pk=pk)
+            agent = get_object_or_404(SalesAgent, pk=pk, user=request.user)
         else:
             return Response(
                 {"error": "Invalid agent type specified."},

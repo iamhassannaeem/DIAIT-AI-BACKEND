@@ -83,21 +83,21 @@ class Agent(models.Model):
         related_name="%(class)s_tts_technology_provider",
         null=True,
         blank=True,
-    )  # Use a unique related_name
+    )
     stt_technology_provider = models.ForeignKey(
         AITec,
         on_delete=models.CASCADE,
         related_name="%(class)s_stt_technology_provider",
         null=True,
         blank=True,
-    )  # Use a unique related_name
+    )
 
     class Meta:
         abstract = True
 
     def save(self, *args, **kwargs):
         if self.twillio_number:
-            # Using self.__class__ to refer to the specific subclass like FeedbackAgent or SalesAgent
+
             self.twillio_number.usage_count = (
                 self.__class__.objects.filter(
                     twillio_number=self.twillio_number
@@ -185,64 +185,72 @@ class TimeZone(models.Model):
         return self.name
 
 
-class OutboundCampaign(models.Model):
-    name = models.CharField(max_length=100)
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-    time_zone = models.ForeignKey(TimeZone, on_delete=models.CASCADE)
-    status = models.CharField(max_length=50)
-    feedback_agent = models.ForeignKey(FeedbackAgent, on_delete=models.CASCADE)
+class Campaign(models.Model):
+    TYPE_CHOICES = [
+        (1, "Outbound"),
+        (2, "Inbound"),
+    ]
 
-    def __str__(self):
-        return self.name
-
-
-class CampaignNumberList(models.Model):
-    phone_number = models.CharField(max_length=15)
-    outbound_campaign = models.ForeignKey(
-        OutboundCampaign,
-        related_name="campaign_numbers",
-        on_delete=models.CASCADE,
-        null=True,
+    agent_name = models.CharField(max_length=255)
+    datetime = models.DateTimeField()
+    timezone = models.ForeignKey(TimeZone, on_delete=models.CASCADE)
+    status = models.IntegerField()
+    type = models.IntegerField(choices=TYPE_CHOICES)
+    feedback_agent = models.ForeignKey(
+        FeedbackAgent, null=True, blank=True, on_delete=models.CASCADE
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    sales_agent = models.ForeignKey(
+        SalesAgent, null=True, blank=True, on_delete=models.CASCADE
+    )
 
     def __str__(self):
-        return self.phone_number
+        return f"Campaign - {self.agent_name} ({self.get_type_display()})"
+
+    def save(self, *args, **kwargs):
+        if self.type == 1 and not self.feedback_agent:
+            raise ValueError("FeedbackAgent must be assigned for outbound campaigns.")
+        elif self.type == 2 and not self.sales_agent:
+            raise ValueError("SalesAgent must be assigned for inbound campaigns.")
+
+        super().save(*args, **kwargs)
 
 
 class CallDetails(models.Model):
-    campaign_number = models.ForeignKey(
-        CampaignNumberList, on_delete=models.CASCADE, related_name="call_details"
-    )
-    call_duration = models.DurationField(null=True, blank=True)
-    conversation = models.TextField(null=True, blank=True)
-    ended_reason = models.CharField(
-        max_length=20,
-        choices=[
-            ("completed", "Completed"),
-            ("missed", "Missed"),
-            ("busy", "Busy"),
-        ],
-        default="completed",
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=[
-            ("completed", "Completed"),
-            ("pending", "Pending"),
-            ("start", "Start"),
-        ],
-        default="pending",
-    )
+    STATUS_CHOICES = [
+        (1, "Pending"),
+        (2, "Ringing"),
+        (3, "Completed"),
+        (4, "Unanswered"),
+    ]
 
-    type = models.CharField(max_length=50, null=True, blank=True)
-    call_id = models.CharField(max_length=100, null=True, blank=True)
+    phone_number = models.CharField(max_length=15)
+    tag = models.CharField(max_length=50, null=True, blank=True)
+    call_start_time = models.DateTimeField(null=True, blank=True)
+    call_end_time = models.DateTimeField(null=True, blank=True)
+    conversation = models.TextField(null=True, blank=True)
+    status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     call_cost = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
+        max_digits=18, decimal_places=2, null=True, blank=True
     )
-    assistant = models.CharField(max_length=100, null=True, blank=True)
-    customer = models.CharField(max_length=100, null=True, blank=True)
+    campaign = models.ForeignKey(
+        Campaign, on_delete=models.CASCADE, related_name="calls"
+    )
 
     def __str__(self):
-        return f"Call {self.call_id} - {self.status} - {self.ended_reason}"
+        return f"Call - {self.phone_number} ({self.get_status_display()})"
+
+
+class FeedbackReport(models.Model):
+    SENTIMENT_CHOICES = [
+        (1, "Positive"),
+        (2, "Neutral"),
+        (3, "Negative"),
+    ]
+
+    call_detail = models.ForeignKey(CallDetails, on_delete=models.CASCADE)
+    feedback_question = models.ForeignKey(FeedbackQuestion, on_delete=models.CASCADE)
+    answer = models.TextField()
+    call_sentiments = models.IntegerField(choices=SENTIMENT_CHOICES)
+
+    def __str__(self):
+        return f"Feedback - {self.call_detail} ({self.get_call_sentiments_display()})"
