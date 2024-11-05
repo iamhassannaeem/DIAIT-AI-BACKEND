@@ -10,5 +10,5 @@ from .agent import (
     File_agentSerializer,
 )
 from .library_serilizer import FileSerializer
-from .outbountcompaign_serlizer import OutboundCampaignSerializer, CallDetailsSerializer
+from .outbountcompaign_serlizer import CallDetailsSerializer, CampaignSerializer
 from .twillio_auth_serilizer import TwilioNumbersSerializer
