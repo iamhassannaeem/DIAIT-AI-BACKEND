@@ -5,7 +5,6 @@ from ai_call_agent.models import (
     FeedbackAgent,
     FeedbackQuestion,
     CallDetails,
-    TimeZone,
     SalesAgent,
 )
 
@@ -51,36 +50,69 @@ class CallDetailsSerializer(serializers.ModelSerializer):
 
 
 class CampaignSerializer(serializers.ModelSerializer):
-    timezone = serializers.PrimaryKeyRelatedField(queryset=TimeZone.objects.all())
     feedback_agent = serializers.PrimaryKeyRelatedField(
         queryset=FeedbackAgent.objects.all(), required=False
     )
     sales_agent = serializers.PrimaryKeyRelatedField(
         queryset=SalesAgent.objects.all(), required=False
     )
-    call_details = CallDetailsSerializer(many=True)
+    call_details = CallDetailsSerializer(many=True, required=False)
+    agent_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Campaign
         fields = [
             "id",
-            "agent_name",
+            "name",
             "datetime",
             "timezone",
             "status",
             "type",
             "feedback_agent",
             "sales_agent",
+            "agent_name",
             "call_details",
         ]
 
+    def get_agent_name(self, obj):
+
+        if obj.feedback_agent:
+            return obj.feedback_agent.name
+        elif obj.sales_agent:
+            return obj.sales_agent.name
+        return None
+
     def create(self, validated_data):
-        call_details_data = validated_data.pop("call_details")
+        call_details_data = validated_data.pop("call_details", [])
+
         campaign = Campaign.objects.create(**validated_data)
 
-        # Set the campaign for each call detail and save
-        for call_detail in call_details_data:
-            call_detail["campaign"] = campaign  # Set the campaign field
-            CallDetails.objects.create(**call_detail)
+        if call_details_data:
+            for call_detail in call_details_data:
+                call_detail["campaign"] = campaign
+                CallDetails.objects.create(**call_detail)
 
         return campaign
+
+    def update(self, instance, validated_data):
+
+        instance.name = validated_data.get("name", instance.name)
+        instance.datetime = validated_data.get("datetime", instance.datetime)
+        instance.timezone = validated_data.get("timezone", instance.timezone)
+        instance.status = validated_data.get("status", instance.status)
+        instance.type = validated_data.get("type", instance.type)
+        instance.feedback_agent = validated_data.get(
+            "feedback_agent", instance.feedback_agent
+        )
+        instance.sales_agent = validated_data.get("sales_agent", instance.sales_agent)
+        instance.save()
+
+        call_details_data = validated_data.pop("call_details", None)
+        if call_details_data is not None:
+            instance.call_details.all().delete()
+
+            for call_detail in call_details_data:
+                call_detail["campaign"] = instance
+                CallDetails.objects.create(**call_detail)
+
+        return instance

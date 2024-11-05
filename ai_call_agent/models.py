@@ -177,25 +177,22 @@ class AgentFileMapping(models.Model):
         return f"{self.file} mapped as {self.get_file_type_display()} for {self.agent_details}"
 
 
-class TimeZone(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    offset = models.CharField(max_length=10)
-
-    def __str__(self):
-        return self.name
-
-
 class Campaign(models.Model):
     TYPE_CHOICES = [
         (1, "Outbound"),
         (2, "Inbound"),
     ]
+    Status_CHOICES = [
+        (1, "Started"),
+        (2, "Not Started"),
+        (3, "Completed"),
+    ]
 
-    agent_name = models.CharField(max_length=255)
-    datetime = models.DateTimeField()
-    timezone = models.ForeignKey(TimeZone, on_delete=models.CASCADE)
-    status = models.IntegerField()
-    type = models.IntegerField(choices=TYPE_CHOICES)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    datetime = models.DateTimeField(null=True, blank=True)
+    timezone = models.CharField(max_length=50, null=True, blank=True)
+    status = models.IntegerField(choices=Status_CHOICES, default=2)
+    type = models.IntegerField(choices=TYPE_CHOICES, null=True, blank=True)
     feedback_agent = models.ForeignKey(
         FeedbackAgent, null=True, blank=True, on_delete=models.CASCADE
     )

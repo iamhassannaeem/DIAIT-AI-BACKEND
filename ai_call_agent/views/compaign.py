@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import status, viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -16,14 +16,17 @@ class CampaignViewSet(viewsets.ModelViewSet):
     serializer_class = CampaignSerializer
 
     def get_queryset(self):
+
         feedback_agent_ids = FeedbackAgent.objects.filter(
             user=self.request.user
-        ).values("id")
-        sales_agent_ids = SalesAgent.objects.filter(user=self.request.user).values("id")
+        ).values_list("id", flat=True)
+        sales_agent_ids = SalesAgent.objects.filter(user=self.request.user).values_list(
+            "id", flat=True
+        )
 
         return Campaign.objects.filter(
-            Q(feedback_agent__in=feedback_agent_ids)
-            | Q(sales_agent__in=sales_agent_ids)
+            Q(feedback_agent_id__in=feedback_agent_ids)
+            | Q(sales_agent_id__in=sales_agent_ids)
         )
 
     def perform_create(self, serializer):
@@ -43,21 +46,45 @@ class CampaignViewSet(viewsets.ModelViewSet):
             sales_agent = sales_agents.first()
             campaign = serializer.save(sales_agent=sales_agent)
 
-        call_details_data = self.request.data.get("call_details", [])
-        for call_data in call_details_data:
-            call_data["campaign"] = campaign.id
+        return campaign
+
+    def create(self, request, *args, **kwargs):
+
+        campaign_data = {
+            "name": request.data.get("name"),
+            "datetime": request.data.get("datetime"),
+            "timezone": request.data.get("timezone"),
+            "type": request.data.get("type"),
+        }
+
+        campaign_type = str(request.data.get("type"))
+        if campaign_type == "1":
+            campaign_data["feedback_agent"] = request.data.get("agent")
+        elif campaign_type == "2":
+            campaign_data["sales_agent"] = request.data.get("agent")
+        else:
+            raise ValidationError("Invalid campaign type provided.")
+
+        campaign_serializer = CampaignSerializer(data=campaign_data)
+        campaign_serializer.is_valid(raise_exception=True)
+        campaign = campaign_serializer.save()
+
+        call_details = request.data.get("call_details", [])
+        for call in call_details:
+            call_data = {
+                "campaign": campaign.id,
+                "phone_number": call.get("phone_number"),
+                "tag": call.get("tag"),
+                "call_start_time": call.get("call_start_time"),
+                "call_end_time": call.get("call_end_time"),
+                "conversation": call.get("conversation"),
+                "call_cost": call.get("call_cost"),
+            }
             call_detail_serializer = CallDetailsSerializer(data=call_data)
             call_detail_serializer.is_valid(raise_exception=True)
             call_detail_serializer.save()
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response({"campaign_id": campaign.id}, status=status.HTTP_201_CREATED)
 
 
 class CallDetailsViewSet(viewsets.ModelViewSet):
