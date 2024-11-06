@@ -41,12 +41,10 @@ class CampaignViewSet(viewsets.ModelViewSet):
         campaign_type = serializer.validated_data.get("type")
         if campaign_type == 1:
             feedback_agent = feedback_agents.first()
-            campaign = serializer.save(feedback_agent=feedback_agent)
+            serializer.save(feedback_agent=feedback_agent)
         elif campaign_type == 2:
             sales_agent = sales_agents.first()
-            campaign = serializer.save(sales_agent=sales_agent)
-
-        return campaign
+            serializer.save(sales_agent=sales_agent)
 
     def create(self, request, *args, **kwargs):
 

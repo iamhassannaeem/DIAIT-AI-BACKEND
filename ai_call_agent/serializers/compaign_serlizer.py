@@ -95,24 +95,27 @@ class CampaignSerializer(serializers.ModelSerializer):
         return campaign
 
     def update(self, instance, validated_data):
+        call_details_data = validated_data.pop("call_details", [])
 
-        instance.name = validated_data.get("name", instance.name)
-        instance.datetime = validated_data.get("datetime", instance.datetime)
-        instance.timezone = validated_data.get("timezone", instance.timezone)
-        instance.status = validated_data.get("status", instance.status)
-        instance.type = validated_data.get("type", instance.type)
-        instance.feedback_agent = validated_data.get(
-            "feedback_agent", instance.feedback_agent
-        )
-        instance.sales_agent = validated_data.get("sales_agent", instance.sales_agent)
-        instance.save()
+        campaign_type = validated_data.get("type", instance.type)
+        agent_id = self.context.get("request").data.get("agent")
 
-        call_details_data = validated_data.pop("call_details", None)
-        if call_details_data is not None:
-            instance.call_details.all().delete()
+        if campaign_type == 1:
+            if agent_id:
+                instance.feedback_agent = FeedbackAgent.objects.get(id=agent_id)
+                instance.sales_agent = None
+        elif campaign_type == 2:
+            if agent_id:
+                instance.sales_agent = SalesAgent.objects.get(id=agent_id)
+                instance.feedback_agent = None
+        else:
+            raise serializers.ValidationError("Invalid campaign type.")
 
-            for call_detail in call_details_data:
-                call_detail["campaign"] = instance
-                CallDetails.objects.create(**call_detail)
+        instance = super().update(instance, validated_data)
+
+        instance.calls.all().delete()
+        for call_detail in call_details_data:
+            call_detail["campaign"] = instance
+            CallDetails.objects.create(**call_detail)
 
         return instance
