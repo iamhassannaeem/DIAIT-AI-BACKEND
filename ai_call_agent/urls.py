@@ -13,7 +13,7 @@ from .views import (
 router = routers.DefaultRouter()
 
 
-router.register(r"outbound/campaigns", CampaignViewSet, basename="outbound-campaigns")
+router.register(r"campaigns", CampaignViewSet, basename="outbound-campaigns")
 router.register(r"call/details", CallDetailsViewSet, basename="call-dtaeils")
 
 router.register("agent", AgentViewSet, basename="agent")
