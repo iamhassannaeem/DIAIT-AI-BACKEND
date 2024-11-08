@@ -3,16 +3,11 @@ from rest_framework import serializers
 from ai_call_agent.models import (
     Campaign,
     FeedbackAgent,
-    FeedbackQuestion,
     CallDetails,
     SalesAgent,
+    FeedbackReport,
 )
-
-
-class FeedbackQuestionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FeedbackQuestion
-        fields = ["id", "order", "question_text"]
+from ai_call_agent.serializers import FeedbackQuestionSerializer
 
 
 class FeedbackAgentSerializer(serializers.ModelSerializer):
@@ -72,6 +67,7 @@ class CampaignSerializer(serializers.ModelSerializer):
             "sales_agent",
             "agent_name",
             "call_details",
+            "task_id",
         ]
 
     def get_agent_name(self, obj):
@@ -119,3 +115,72 @@ class CampaignSerializer(serializers.ModelSerializer):
             CallDetails.objects.create(**call_detail)
 
         return instance
+
+
+class FeedbackReportSerializer(serializers.ModelSerializer):
+    feedback_question_text = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FeedbackReport
+        fields = [
+            "id",
+            "feedback_question_text",
+            "answer",
+            "call_sentiments",
+            "call_detail",
+            "phone_number",
+        ]
+
+    def get_feedback_question_text(self, obj):
+        return obj.feedback_question.question_text
+
+    def get_phone_number(self, obj):
+        return obj.call_detail.phone_number
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+
+        if "call_detail" not in self.context:
+            self.context["call_detail"] = {}
+
+        call_detail_id = instance.call_detail.id
+        if call_detail_id not in self.context["call_detail"]:
+            self.context["call_detail"][call_detail_id] = {
+                "call_detail": call_detail_id,
+                "phone_number": [],
+                "feedback_questions": [],
+                "answers": [],
+                "call_sentiments": [],
+            }
+
+        phone_number = instance.call_detail.phone_number
+        feedback_question_text = self.get_feedback_question_text(instance)
+        answer = instance.answer
+        call_sentiment = instance.get_call_sentiments_display()
+
+        if (
+            phone_number
+            not in self.context["call_detail"][call_detail_id]["phone_number"]
+        ):
+            self.context["call_detail"][call_detail_id]["phone_number"].append(
+                phone_number
+            )
+        if (
+            feedback_question_text
+            not in self.context["call_detail"][call_detail_id]["feedback_questions"]
+        ):
+            self.context["call_detail"][call_detail_id]["feedback_questions"].append(
+                feedback_question_text
+            )
+        if answer not in self.context["call_detail"][call_detail_id]["answers"]:
+            self.context["call_detail"][call_detail_id]["answers"].append(answer)
+        if (
+            call_sentiment
+            not in self.context["call_detail"][call_detail_id]["call_sentiments"]
+        ):
+            self.context["call_detail"][call_detail_id]["call_sentiments"].append(
+                call_sentiment
+            )
+
+        return self.context["call_detail"][call_detail_id]

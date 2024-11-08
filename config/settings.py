@@ -16,7 +16,7 @@ SECRET_KEY = env.str("SECRET_KEY", default="")
 
 # ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS", default=["192.168.99.6", "localhost", "127.0.0.1"]
+    "ALLOWED_HOSTS", default=["192.168.1.8", "localhost", "127.0.0.1"]
 )
 
 AUTH_USER_MODEL = "authentication.User"
@@ -145,7 +145,7 @@ CELERY_BROKER_URL = "amqp://guest:guest@localhost//"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 # CELERY_RESULT_BACKEND = "rpc://"  # Result backend, using RabbitMQ as well
-CELERY_TIMEZONE = "UTC"
+# CELERY_TIMEZONE = "UTC"
 
 
 CELERY_BEAT_SCHEDULE = {

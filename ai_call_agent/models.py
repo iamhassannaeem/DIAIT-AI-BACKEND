@@ -125,6 +125,7 @@ class SalesAgent(Agent):
 
 
 class FeedbackQuestion(models.Model):
+    id = models.AutoField(primary_key=True)
     order = models.PositiveSmallIntegerField()
     question_text = models.CharField(max_length=255)
     feedback_agent = models.ForeignKey(
@@ -132,7 +133,8 @@ class FeedbackQuestion(models.Model):
     )
 
     def __str__(self):
-        return self.question_text
+
+        return f"{self.question_text}- {self.ids}"
 
 
 class File(models.Model):
@@ -186,6 +188,7 @@ class Campaign(models.Model):
         (1, "Started"),
         (2, "Not Started"),
         (3, "Completed"),
+        (4, "Stop"),
     ]
 
     name = models.CharField(max_length=255, null=True, blank=True)
@@ -193,6 +196,7 @@ class Campaign(models.Model):
     timezone = models.CharField(max_length=50, null=True, blank=True)
     status = models.IntegerField(choices=Status_CHOICES, default=2)
     type = models.IntegerField(choices=TYPE_CHOICES, null=True, blank=True)
+    task_id = models.CharField(max_length=255, null=True, blank=True)
     feedback_agent = models.ForeignKey(
         FeedbackAgent, null=True, blank=True, on_delete=models.CASCADE
     )
@@ -210,6 +214,12 @@ class Campaign(models.Model):
             raise ValueError("SalesAgent must be assigned for inbound campaigns.")
 
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+
+        self.calls.all().delete()
+        FeedbackReport.objects.filter(call_detail__campaign=self).delete()
+        super().delete(*args, **kwargs)
 
 
 class CallDetails(models.Model):

@@ -9,6 +9,10 @@ from .agent import (
     Twilio_agentNumberSerializer,
     File_agentSerializer,
 )
-from .compaign_serlizer import CallDetailsSerializer, CampaignSerializer
+from .compaign_serlizer import (
+    CallDetailsSerializer,
+    CampaignSerializer,
+    FeedbackReportSerializer,
+)
 from .library_serilizer import FileSerializer
 from .twillio_auth_serilizer import TwilioNumbersSerializer

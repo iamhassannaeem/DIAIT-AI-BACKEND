@@ -50,7 +50,7 @@ class AITecSerializer(serializers.ModelSerializer):
 class FeedbackQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = FeedbackQuestion
-        fields = ["order", "question_text", "id"]
+        fields = ["id", "order", "question_text"]
 
 
 class AgentFileMappingSerializer(serializers.ModelSerializer):
@@ -79,17 +79,18 @@ class FeedbackAgentDetailsSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         feed_questions_data = validated_data.pop("feed_questions", [])
+
         user = self.context["request"].user
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.user = user
         instance.save()
-        if feed_questions_data:
-            instance.feed_questions.all().delete()
-            for question_data in feed_questions_data:
-                FeedbackQuestion.objects.create(
-                    feedback_agent=instance, **question_data
-                )
+        # if feed_questions_data:
+        #     instance.feed_questions.all().delete()
+        #     for question_data in feed_questions_data:
+        #         FeedbackQuestion.objects.create(
+        #             feedback_agent=instance, **question_data
+        #         )
         return instance
 
 

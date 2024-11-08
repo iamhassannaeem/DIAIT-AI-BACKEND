@@ -93,6 +93,22 @@ class AgentViewSet(viewsets.ViewSet):
         agent_type = request.data.get("agent_type")
 
         if agent_type == "feedback":
+            feed_questions_data = request.data.get("feed_questions", [])
+
+            feed_question_ids = [
+                question.get("id")
+                for question in feed_questions_data
+                if question.get("id")
+            ]
+            for feed_question_id in feed_question_ids:
+                feed_question = get_object_or_404(FeedbackQuestion, pk=feed_question_id)
+                for question_data in feed_questions_data:
+                    if question_data.get("id") == feed_question_id:
+                        feed_question.question_text = question_data.get(
+                            "question_text", feed_question.question_text
+                        )
+
+                        feed_question.save()
             agent = get_object_or_404(FeedbackAgent, pk=pk, user=request.user)
             serializer = FeedbackAgentDetailsSerializer(
                 agent, data=request.data, context={"request": request}
