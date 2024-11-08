@@ -14,8 +14,10 @@ DEBUG = env.bool("DEBUG", default=True)
 
 SECRET_KEY = env.str("SECRET_KEY", default="")
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
-
+# ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+ALLOWED_HOSTS = env.list(
+    "ALLOWED_HOSTS", default=["192.168.99.6", "localhost", "127.0.0.1"]
+)
 
 AUTH_USER_MODEL = "authentication.User"
 
@@ -137,3 +139,19 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = env("S3_SECRET_ACCESS_KEY")
 AWS_S3_BUCKET_NAME = env("AWS_S3_BUCKET_NAME")
+
+
+CELERY_BROKER_URL = "amqp://guest:guest@localhost//"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+# CELERY_RESULT_BACKEND = "rpc://"  # Result backend, using RabbitMQ as well
+CELERY_TIMEZONE = "UTC"
+
+
+CELERY_BEAT_SCHEDULE = {
+    "Ai_task_For _Compaign": {
+        "task": "ai_call_agent.tasks.Ai_task",
+        "schedule": 60.0,
+    },
+}
+# celery -A  worker --pool=gevent --loglevel=info
