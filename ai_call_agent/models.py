@@ -193,6 +193,7 @@ class Campaign(models.Model):
 
     name = models.CharField(max_length=255, null=True, blank=True)
     datetime = models.DateTimeField(null=True, blank=True)
+    campaign_local_datetime = models.DateTimeField(null=True, blank=True)
     timezone = models.CharField(max_length=50, null=True, blank=True)
     status = models.IntegerField(choices=Status_CHOICES, default=2)
     type = models.IntegerField(choices=TYPE_CHOICES, null=True, blank=True)

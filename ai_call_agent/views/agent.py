@@ -153,7 +153,6 @@ class InputDataView(viewsets.ViewSet):
     def list(self, request):
         user = request.user
 
-        # Query data
         ai_models = AIModel.objects.all()
         ai_tecs = AITec.objects.all()
         ai_audio = AIAudio.objects.all()

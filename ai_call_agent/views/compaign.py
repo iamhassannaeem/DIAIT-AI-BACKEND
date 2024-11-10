@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -11,10 +12,12 @@ from ai_call_agent.models import (
     FeedbackAgent,
     SalesAgent,
     FeedbackReport,
+    FeedbackQuestion,
 )
 from ai_call_agent.serializers import (
     CampaignSerializer,
     CallDetailsSerializer,
+    FeedbackQuestionSerializer,
     FeedbackReportSerializer,
 )
 from ai_call_agent.tasks import *
@@ -94,7 +97,7 @@ class CampaignViewSet(viewsets.ModelViewSet):
         adjusted_local_time = local_time + time_difference
 
         task = Ai_task.apply_async((campaign.id,), eta=adjusted_local_time)
-
+        campaign.campaign_local_datetime = adjusted_local_time
         campaign.task_id = task.id
         campaign.save()
 
@@ -134,45 +137,91 @@ class CallDetailsViewSet(viewsets.ModelViewSet):
 
 
 class FeedbackReportViewSet(viewsets.ModelViewSet):
-    queryset = FeedbackReport.objects.all().select_related(
-        "call_detail", "feedback_question"
-    )
     serializer_class = FeedbackReportSerializer
+    permission_classes = [IsAuthenticated]
 
-    def list(self, request, *args, **kwargs):
+    def get_queryset(self):
+        user = self.request.user
 
-        feedback_reports = self.get_queryset()
-        grouped_data = {}
+        feedback_agent_campaigns = Campaign.objects.filter(feedback_agent__user=user)
+        sales_agent_campaigns = Campaign.objects.filter(sales_agent__user=user)
 
-        for report in feedback_reports:
-            call_detail_id = report.call_detail.id
-            if call_detail_id not in grouped_data:
-                grouped_data[call_detail_id] = {
-                    "call_detail": call_detail_id,
-                    "phone_number": [],
-                    "feedback_questions": [],
-                    "answers": [],
-                    "call_sentiments": [],
-                }
+        campaigns = feedback_agent_campaigns | sales_agent_campaigns
 
-            phone_number = report.call_detail.phone_number
-            feedback_question_text = report.feedback_question.question_text
-            answer = report.answer
-            call_sentiment = report.get_call_sentiments_display()
+        return FeedbackReport.objects.filter(call_detail__campaign__in=campaigns)
 
-            if phone_number not in grouped_data[call_detail_id]["phone_number"]:
-                grouped_data[call_detail_id]["phone_number"].append(phone_number)
-            if (
-                feedback_question_text
-                not in grouped_data[call_detail_id]["feedback_questions"]
-            ):
-                grouped_data[call_detail_id]["feedback_questions"].append(
-                    feedback_question_text
+    def list(self, request):
+        reports = (
+            self.get_queryset()
+            .values("call_detail_id")
+            .annotate(
+                answers=ArrayAgg("answer"),
+                sentiments=ArrayAgg("call_sentiments"),
+                feedback_ids=ArrayAgg("feedback_question_id"),
+            )
+        )
+
+        response_data = []
+        for report in reports:
+            feedback_questions = FeedbackQuestion.objects.filter(
+                id__in=report["feedback_ids"]
+            )
+            questions_data = FeedbackQuestionSerializer(
+                feedback_questions, many=True
+            ).data
+
+            call_detail = CallDetails.objects.filter(
+                id=report["call_detail_id"]
+            ).first()
+            phone_number = call_detail.phone_number if call_detail else "Unknown"
+
+            question_map = {q["id"]: q for q in questions_data}
+
+            combined_answers = []
+            for idx, answer in enumerate(report["answers"]):
+                feedback_id = (
+                    report["feedback_ids"][idx]
+                    if idx < len(report["feedback_ids"])
+                    else None
                 )
-            if answer not in grouped_data[call_detail_id]["answers"]:
-                grouped_data[call_detail_id]["answers"].append(answer)
-            if call_sentiment not in grouped_data[call_detail_id]["call_sentiments"]:
-                grouped_data[call_detail_id]["call_sentiments"].append(call_sentiment)
+                question_text = question_map.get(feedback_id, {}).get(
+                    "question_text", "Unknown Question"
+                )
 
-        # Convert grouped data to a list and return it
-        return Response(list(grouped_data.values()))
+                sentiment_value = (
+                    report["sentiments"][idx]
+                    if idx < len(report["sentiments"])
+                    else None
+                )
+                sentiment_display = (
+                    FeedbackReport.SENTIMENT_CHOICES[sentiment_value - 1][1]
+                    if sentiment_value and sentiment_value > 0
+                    else "Unknown Sentiment"
+                )
+
+                combined_answers.append(
+                    {
+                        "answer": answer,
+                        "feedback_question_id": feedback_id,
+                        "question_text": question_text,
+                        "sentiment": sentiment_display,
+                    }
+                )
+
+            response_data.append(
+                {
+                    "call_detail_id": report["call_detail_id"],
+                    "phone_number": phone_number,
+                    "combined_answers": combined_answers,
+                }
+            )
+
+        return Response(response_data)
+
+    def retrieve(self, request, pk=None):
+        try:
+            feedback_report = self.get_queryset().get(id=pk)
+            serializer = FeedbackReportSerializer(feedback_report)
+            return Response(serializer.data)
+        except FeedbackReport.DoesNotExist:
+            return Response({"detail": "Not found."}, status=404)
