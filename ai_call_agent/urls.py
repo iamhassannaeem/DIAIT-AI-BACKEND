@@ -6,6 +6,7 @@ from .views import (
     CallDetailsViewSet,
     FeedbackReportViewSet,
     StopCampaignTaskView,
+    UserPaymentViewSet,
 )
 from .views import (
     TwilioNumbersViewSet,
@@ -37,6 +38,8 @@ router.register("library", FileViewSet, basename="library")
 
 router.register(r"feedback-questions", FeedbackQuestionViewSet)
 
+router.register(r"payments", UserPaymentViewSet, basename="user-payment")
+
 urlpatterns = [
     path(
         "library/download/<str:file_name>/",
@@ -54,4 +57,8 @@ urlpatterns = [
         AgentViewSet.as_view({"get": "retrieve"}),
         name="agent-retrieve",
     ),
+    # path("payment/", ai_call_agent.views.payment, name="payment"),  # Payment form
+    # path(
+    #     "process_payment/", ai_call_agent.views.process_payment, name="process_payment"
+    # ),
 ]

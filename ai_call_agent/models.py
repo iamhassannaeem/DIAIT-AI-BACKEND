@@ -190,7 +190,9 @@ class Campaign(models.Model):
         (3, "Completed"),
         (4, "Stop"),
     ]
-
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="campaigns"
+    )
     name = models.CharField(max_length=255, null=True, blank=True)
     datetime = models.DateTimeField(null=True, blank=True)
     campaign_local_datetime = models.DateTimeField(null=True, blank=True)
@@ -226,7 +228,7 @@ class Campaign(models.Model):
 class CallDetails(models.Model):
     STATUS_CHOICES = [
         (1, "Pending"),
-        (2, "Ringing"),
+        (2, "Started"),
         (3, "Completed"),
         (4, "Unanswered"),
     ]
@@ -235,8 +237,11 @@ class CallDetails(models.Model):
     tag = models.CharField(max_length=50, null=True, blank=True)
     call_start_time = models.DateTimeField(null=True, blank=True)
     call_end_time = models.DateTimeField(null=True, blank=True)
+    call_duaration = models.DateTimeField(null=True, blank=True)
     conversation = models.TextField(null=True, blank=True)
-    status = models.IntegerField(choices=STATUS_CHOICES, default=1)
+    status = models.TextField(null=True, blank=True)
+
+    # status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     call_cost = models.DecimalField(
         max_digits=18, decimal_places=2, null=True, blank=True
     )
@@ -258,7 +263,43 @@ class FeedbackReport(models.Model):
     call_detail = models.ForeignKey(CallDetails, on_delete=models.CASCADE)
     feedback_question = models.ForeignKey(FeedbackQuestion, on_delete=models.CASCADE)
     answer = models.TextField()
-    call_sentiments = models.IntegerField(choices=SENTIMENT_CHOICES)
+    call_sentiments = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"Feedback - {self.call_detail} ({self.get_call_sentiments_display()})"
+
+
+######strip####
+class PaymentMethod(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="payment_methods",
+    )
+    stripe_payment_method_id = models.CharField(max_length=100, unique=True)
+    stripe_customer_id = models.CharField(max_length=255)
+    card_brand = models.CharField(max_length=50)
+    card_last4 = models.CharField(max_length=4)
+    card_exp_month = models.IntegerField()
+    card_exp_year = models.IntegerField()
+    is_verified = models.BooleanField(default=False)
+
+
+class UserBalance(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="balance"
+    )
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def add_balance(self, amount):
+        self.balance += amount
+        self.save()
+
+
+class TransactionLog(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transactions"
+    )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    description = models.TextField()
