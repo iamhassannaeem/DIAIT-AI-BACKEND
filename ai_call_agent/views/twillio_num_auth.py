@@ -128,7 +128,7 @@ class TwilioNumbersViewSet(viewsets.ModelViewSet):
                     "phone_number": twilio_number.phone_number,
                     "auth_token_label": twilio_number.auth_token_label,
                     "status": twilio_number.status,
-                    "created_date": twilio_number.created_date.isoformat() + "Z",
+                     "created_date": twilio_number.created_date.isoformat() + "Z" if twilio_number.created_date else None,
                     "usage_count": twilio_number.usage_count,
                 }
             )

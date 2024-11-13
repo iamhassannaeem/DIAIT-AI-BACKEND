@@ -1,24 +1,24 @@
-from celery.worker.control import revoke
+from celery.result import AsyncResult
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Q
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from ai_call_agent.models import (
     CallDetails,
     FeedbackAgent,
     SalesAgent,
-    FeedbackReport,
-    FeedbackQuestion,
+    Calllogs,
+    Question,
 )
 from ai_call_agent.serializers import (
     CampaignSerializer,
     CallDetailsSerializer,
-    FeedbackQuestionSerializer,
+    QuestionSerializer,
     FeedbackReportSerializer,
 )
 from ai_call_agent.tasks import *
@@ -110,12 +110,17 @@ class CampaignViewSet(viewsets.ModelViewSet):
         if update_instance:
             instance = self.get_object()
             old_task_id = instance.task_id
+
             print("old_task_id", old_task_id)
+            campaign_id = instance.id
+            print("campaign_id", campaign_id)
 
             if old_task_id:
                 try:
-                    task_id = old_task_id
-                    revoke(task_id, terminate=True)
+                    task = AsyncResult(old_task_id)
+                    task.revoke(terminate=True)
+                    print(f"revideed{old_task_id}")
+
                 except Exception as e:
                     print(f"Failed to revoke task {old_task_id}: {str(e)}")
 
@@ -129,12 +134,10 @@ class CampaignViewSet(viewsets.ModelViewSet):
 
         campaign_serializer.is_valid(raise_exception=True)
         campaign = campaign_serializer.save()
-
-        # Schedule the new task
         task = Ai_task.apply_async((campaign.id,), eta=adjusted_local_time)
-
         campaign.campaign_local_datetime = adjusted_local_time
         campaign.task_id = task.id
+        campaign.status = 2
         campaign.save()
 
         call_details = request.data.get("call_details", [])
@@ -157,122 +160,13 @@ class CampaignViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK if update_instance else status.HTTP_201_CREATED,
         )
 
-    # def create(self, request, *args, **kwargs):
-    #
-    #     campaign_data = {
-    #         "name": request.data.get("name"),
-    #         "datetime": request.data.get("datetime"),
-    #         "timezone": request.data.get("timezone"),
-    #         "type": request.data.get("type"),
-    #     }
-    #
-    #     campaign_type = str(request.data.get("type"))
-    #     agent_id = request.data.get("agent")
-    #
-    #     if campaign_type == "1":
-    #         agent = FeedbackAgent.objects.filter(id=agent_id).first()
-    #         if not agent:
-    #             raise ValidationError("Invalid feedback agent provided.")
-    #         campaign_data["feedback_agent"] = agent_id
-    #     elif campaign_type == "2":
-    #         agent = SalesAgent.objects.filter(id=agent_id).first()
-    #         if not agent:
-    #             raise ValidationError("Invalid sales agent provided.")
-    #         campaign_data["sales_agent"] = agent_id
-    #     else:
-    #         raise ValidationError("Invalid campaign type provided.")
-    #
-    #     given_datetime_str = request.data.get("datetime")
-    #     timezone_str = request.data.get("timezone")
-    #     given_datetime = datetime.strptime(given_datetime_str, "%Y-%m-%d %H:%M:%S")
-    #     timezone = pytz.timezone(timezone_str)
-    #     given_datetime = timezone.localize(given_datetime)
-    #
-    #     current_time_in_timezone = datetime.now(timezone)
-    #     if given_datetime <= current_time_in_timezone:
-    #         raise ValidationError("The provided datetime cannot be in the past.")
-    #
-    #     campaign_serializer = CampaignSerializer(
-    #         data=campaign_data, context={"request": request}
-    #     )
-    #     campaign_serializer.is_valid(raise_exception=True)
-    #     campaign = campaign_serializer.save()
-    #
-    #     local_time = datetime.now().astimezone()
-    #     time_difference = given_datetime - current_time_in_timezone
-    #     adjusted_local_time = local_time + time_difference
-    #     task = Ai_task.apply_async((campaign.id,), eta=adjusted_local_time)
-    #
-    #     campaign.campaign_local_datetime = adjusted_local_time
-    #     campaign.task_id = task.id
-    #     campaign.save()
-    #
-    #     call_details = request.data.get("call_details", [])
-    #     for call in call_details:
-    #         call_data = {
-    #             "campaign": campaign.id,
-    #             "phone_number": call.get("phone_number"),
-    #             "tag": call.get("tag"),
-    #             "call_start_time": call.get("call_start_time"),
-    #             "call_end_time": call.get("call_end_time"),
-    #             "conversation": call.get("conversation"),
-    #             "call_cost": call.get("call_cost"),
-    #         }
-    #         call_detail_serializer = CallDetailsSerializer(data=call_data)
-    #         call_detail_serializer.is_valid(raise_exception=True)
-    #         call_detail_serializer.save()
-    #
-    #     return Response({"campaign_id": campaign.id}, status=status.HTTP_201_CREATED)
-    #
-    # def update(self, request, *args, **kwargs):
-    #     instance = self.get_object()
-    #
-    #     given_datetime_str = request.data.get("datetime")
-    #     timezone_str = request.data.get("timezone")
-    #     given_datetime = datetime.strptime(given_datetime_str, "%Y-%m-%d %H:%M:%S")
-    #     timezone = pytz.timezone(timezone_str)
-    #     given_datetime = timezone.localize(given_datetime)
-    #
-    #     current_time_in_timezone = datetime.now(timezone)
-    #     if given_datetime <= current_time_in_timezone:
-    #         raise ValidationError("The provided datetime cannot be in the past.")
-    #
-    #     local_time = datetime.now().astimezone()
-    #     time_difference = given_datetime - current_time_in_timezone
-    #     adjusted_local_time = local_time + time_difference
-    #     task = Ai_task.apply_async((instance.id,), eta=adjusted_local_time)
-    #
-    #     instance.campaign_local_datetime = adjusted_local_time
-    #     instance.task_id = task.id
-    #     instance.save()
-    #
-    #     serializer = self.get_serializer(instance, data=request.data, partial=True)
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer.save()
-    #
-    #     call_details = request.data.get("call_details", [])
-    #     for call in call_details:
-    #         call_data = {
-    #             "campaign": instance.id,
-    #             "phone_number": call.get("phone_number"),
-    #             "tag": call.get("tag"),
-    #             "call_start_time": call.get("call_start_time"),
-    #             "call_end_time": call.get("call_end_time"),
-    #             "conversation": call.get("conversation"),
-    #             "call_cost": call.get("call_cost"),
-    #         }
-    #         call_detail_serializer = CallDetailsSerializer(data=call_data)
-    #         call_detail_serializer.is_valid(raise_exception=True)
-    #         call_detail_serializer.save()
-    #
-    #     return Response({"campaign_id": instance.id}, status=status.HTTP_200_OK)
-    #
 
-
-class StopCampaignTaskView(APIView):
+class StopCampaignTaskViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, campaign_id):
+    @action(detail=True, methods=["post"])
+    def stop(self, request, pk=None):
+        campaign_id = pk
         stop_campaign_task(campaign_id)
         return Response(
             {"message": "Campaign task stopped successfully."},
@@ -303,7 +197,7 @@ class FeedbackReportViewSet(viewsets.ModelViewSet):
 
         campaigns = feedback_agent_campaigns | sales_agent_campaigns
 
-        return FeedbackReport.objects.filter(call_detail__campaign__in=campaigns)
+        return Calllogs.objects.filter(call_detail__campaign__in=campaigns)
 
     def list(self, request):
         reports = (
@@ -318,12 +212,8 @@ class FeedbackReportViewSet(viewsets.ModelViewSet):
 
         response_data = []
         for report in reports:
-            feedback_questions = FeedbackQuestion.objects.filter(
-                id__in=report["feedback_ids"]
-            )
-            questions_data = FeedbackQuestionSerializer(
-                feedback_questions, many=True
-            ).data
+            feedback_questions = Question.objects.filter(id__in=report["feedback_ids"])
+            questions_data = QuestionSerializer(feedback_questions, many=True).data
 
             call_detail = CallDetails.objects.filter(
                 id=report["call_detail_id"]
@@ -349,7 +239,7 @@ class FeedbackReportViewSet(viewsets.ModelViewSet):
                     else "Unknown Sentiment"
                 )
 
-                valid_sentiments = dict(FeedbackReport.SENTIMENT_CHOICES).values()
+                valid_sentiments = dict(Calllogs.SENTIMENT_CHOICES).values()
                 sentiment_display = (
                     sentiment_text
                     if sentiment_text in valid_sentiments
@@ -380,5 +270,5 @@ class FeedbackReportViewSet(viewsets.ModelViewSet):
             feedback_report = self.get_queryset().get(id=pk)
             serializer = FeedbackReportSerializer(feedback_report)
             return Response(serializer.data)
-        except FeedbackReport.DoesNotExist:
+        except Calllogs.DoesNotExist:
             return Response({"detail": "Not found."}, status=404)

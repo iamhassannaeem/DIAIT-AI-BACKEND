@@ -16,7 +16,7 @@ SECRET_KEY = env.str("SECRET_KEY", default="")
 
 # ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS", default=["192.168.1.8", "localhost", "127.0.0.1"]
+    "ALLOWED_HOSTS", default=["192.168.99.6", "localhost", "127.0.0.1"]
 )
 
 AUTH_USER_MODEL = "authentication.User"
@@ -148,10 +148,11 @@ CELERY_TASK_SERIALIZER = "json"
 # CELERY_TIMEZONE = "UTC"
 
 
-CELERY_BEAT_SCHEDULE = {
-    "Ai_task_For _Compaign": {
-        "task": "ai_call_agent.tasks.Ai_task",
-        "schedule": 60.0,
-    },
-}
 # celery -A  worker --pool=gevent --loglevel=info
+STRIPE_SECRET_KEY = "sk_test_51QJZKBG1zx6NU6uvlBQsJmXxif8OqT64LdgHaIphzFWGUWhr7EXvdVXBTIGFkEecv2GYBVavPPaRA3kcI3ufxfPK00l8ngvwFV"
+STRIPE_PUBLISHABLE_KEY = "pk_test_51QJZKBG1zx6NU6uvtdaq4itYhqDRDXcxrAJxlvKfIC0mOpYe9il40xio2i2ElIUEZSliaTm4wvK2s2ezwzDKrnQd00ePhLf6dg"
+# Cost rates per minute
+SERVER_COST = 0.02
+OPENAI_COST = 0.05
+DEEPGRAM_COST = 0.03
+TWILIO_COST = 0.10

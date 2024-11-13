@@ -9,18 +9,15 @@ from ai_call_agent.models import Campaign
 
 def stop_campaign_task(campaign_id):
     try:
-        # Get the campaign by ID
+
         campaign = Campaign.objects.get(id=campaign_id)
 
-        # Get the task associated with this campaign
         task_id = campaign.task_id
 
-        # Revoke the task (stop it if it is still running)
         if task_id:
             task = AsyncResult(task_id)
-            task.revoke(terminate=True)  # Forcefully terminate the task if it's running
+            task.revoke(terminate=True)
 
-            # Update the campaign status to "Stopped" (status = 4)
             campaign.status = 4
             campaign.save()
 

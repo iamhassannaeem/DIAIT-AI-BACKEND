@@ -1,5 +1,5 @@
 from .agent import (
-    FeedbackQuestionSerializer,
+    QuestionSerializer,
     AgentFileMappingSerializer,
     FeedbackAgentDetailsSerializer,
     SalesAgentDetailsSerializer,

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class TwilioNumbers(models.Model):
@@ -31,6 +32,11 @@ class TwilioNumbers(models.Model):
             "created_date": self.created_date,
             "usage_count": self.usage_count,
         }
+
+    def save(self, *args, **kwargs):
+        if not self.created_date:
+            self.created_date = timezone.now()
+        super().save(*args, **kwargs)
 
     def set_status(self, new_status):
         if new_status in dict(self.STATUS_CHOICES):
@@ -121,15 +127,28 @@ class FeedbackAgent(Agent):
 
 
 class SalesAgent(Agent):
+
     pass
 
 
-class FeedbackQuestion(models.Model):
+class Question(models.Model):
     id = models.AutoField(primary_key=True)
     order = models.PositiveSmallIntegerField()
     question_text = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)
     feedback_agent = models.ForeignKey(
-        FeedbackAgent, related_name="feed_questions", on_delete=models.CASCADE
+        FeedbackAgent,
+        related_name="feed_questions",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+    )
+    sales_agent = models.ForeignKey(
+        SalesAgent,
+        related_name="sales_questions",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
     )
 
     def __str__(self):
@@ -214,25 +233,18 @@ class Campaign(models.Model):
         if self.type == 1 and not self.feedback_agent:
             raise ValueError("FeedbackAgent must be assigned for outbound campaigns.")
         elif self.type == 2 and not self.sales_agent:
-            raise ValueError("SalesAgent must be assigned for inbound campaigns.")
+            raise ValueError("SalesAgentt must be assigned for inbound campaigns.")
 
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
 
         self.calls.all().delete()
-        FeedbackReport.objects.filter(call_detail__campaign=self).delete()
+        Calllogs.objects.filter(call_detail__campaign=self).delete()
         super().delete(*args, **kwargs)
 
 
 class CallDetails(models.Model):
-    STATUS_CHOICES = [
-        (1, "Pending"),
-        (2, "Started"),
-        (3, "Completed"),
-        (4, "Unanswered"),
-    ]
-
     phone_number = models.CharField(max_length=15)
     tag = models.CharField(max_length=50, null=True, blank=True)
     call_start_time = models.DateTimeField(null=True, blank=True)
@@ -240,8 +252,6 @@ class CallDetails(models.Model):
     call_duaration = models.DateTimeField(null=True, blank=True)
     conversation = models.TextField(null=True, blank=True)
     status = models.TextField(null=True, blank=True)
-
-    # status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     call_cost = models.DecimalField(
         max_digits=18, decimal_places=2, null=True, blank=True
     )
@@ -253,7 +263,7 @@ class CallDetails(models.Model):
         return f"Call - {self.phone_number} ({self.get_status_display()})"
 
 
-class FeedbackReport(models.Model):
+class Calllogs(models.Model):
     SENTIMENT_CHOICES = [
         (1, "Positive"),
         (2, "Neutral"),
@@ -261,7 +271,8 @@ class FeedbackReport(models.Model):
     ]
 
     call_detail = models.ForeignKey(CallDetails, on_delete=models.CASCADE)
-    feedback_question = models.ForeignKey(FeedbackQuestion, on_delete=models.CASCADE)
+    feedback_question = models.ForeignKey(Question, on_delete=models.CASCADE)
+
     answer = models.TextField()
     call_sentiments = models.TextField(null=True, blank=True)
 

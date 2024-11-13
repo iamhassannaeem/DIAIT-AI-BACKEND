@@ -5,13 +5,13 @@ from ai_call_agent.models import (
     FeedbackAgent,
     CallDetails,
     SalesAgent,
-    FeedbackReport,
+    Calllogs,
 )
-from ai_call_agent.serializers import FeedbackQuestionSerializer
+from ai_call_agent.serializers import QuestionSerializer
 
 
 class FeedbackAgentSerializer(serializers.ModelSerializer):
-    feed_questions = FeedbackQuestionSerializer(many=True, read_only=True)
+    feed_questions = QuestionSerializer(many=True, read_only=True)
 
     class Meta:
         model = FeedbackAgent
@@ -118,38 +118,12 @@ class CampaignSerializer(serializers.ModelSerializer):
 
         return instance
 
-    # def update(self, instance, validated_data):
-    #     print("dfvdmfhd")
-    #     call_details_data = validated_data.pop("call_details", [])
-    #     campaign_type = validated_data.get("type", instance.type)
-    #     agent_id = self.context.get("request").data.get("agent")
-    #
-    #     if campaign_type == 1:
-    #         if agent_id:
-    #             instance.feedback_agent = FeedbackAgent.objects.get(id=agent_id)
-    #             instance.sales_agent = None
-    #     elif campaign_type == 2:
-    #         if agent_id:
-    #             instance.sales_agent = SalesAgent.objects.get(id=agent_id)
-    #             instance.feedback_agent = None
-    #     else:
-    #         raise serializers.ValidationError("Invalid campaign type.")
-    #
-    #     instance = super().update(instance, validated_data)
-    #
-    #     CallDetails.objects.filter(campaign=instance, status__isnull=True).delete()
-    #     for call_detail in call_details_data:
-    #         call_detail["campaign"] = instance
-    #         CallDetails.objects.create(**call_detail)
-    #
-    #     return instance
-
 
 class FeedbackReportSerializer(serializers.ModelSerializer):
-    feedback_question = FeedbackQuestionSerializer(read_only=True)
+    feedback_question = QuestionSerializer(read_only=True)
 
     class Meta:
-        model = FeedbackReport
+        model = Calllogs
         fields = [
             "id",
             "answer",

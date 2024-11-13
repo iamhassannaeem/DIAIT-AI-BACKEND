@@ -1,9 +1,8 @@
-from .agent import InputDataView, AgentViewSet, FeedbackQuestionViewSet
+from .agent import InputDataView, AgentViewSet, QuestionViewSet
 from .compaign import (
     CallDetailsViewSet,
     CampaignViewSet,
     FeedbackReportViewSet,
-    StopCampaignTaskView,
 )
 from .library import FileViewSet
 from .stripe import *

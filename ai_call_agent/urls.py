@@ -5,7 +5,6 @@ from .views import (
     CampaignViewSet,
     CallDetailsViewSet,
     FeedbackReportViewSet,
-    StopCampaignTaskView,
     UserPaymentViewSet,
 )
 from .views import (
@@ -13,20 +12,19 @@ from .views import (
     FileViewSet,
     InputDataView,
     AgentViewSet,
-    FeedbackQuestionViewSet,
+    QuestionViewSet,
 )
+from .views.compaign import StopCampaignTaskViewSet
 
 router = routers.DefaultRouter()
 
 router.register(r"feedbackreport", FeedbackReportViewSet, basename="FeedbackReport")
 
 router.register(r"campaigns", CampaignViewSet, basename="outbound-campaigns")
+
+
 router.register(r"call/details", CallDetailsViewSet, basename="call-dtaeils")
-path(
-    "campaigns/stop/<int:campaign_id>/",
-    StopCampaignTaskView.as_view(),
-    name="stop-campaign-task",
-),
+router.register(r"stopcampaigns", StopCampaignTaskViewSet, basename="campaigns")
 
 router.register("agent", AgentViewSet, basename="agent")
 router.register("agents/InputData", InputDataView, basename="InputData")
@@ -36,7 +34,7 @@ router.register("twillio_auth", TwilioNumbersViewSet, basename="twillio_auth")
 
 router.register("library", FileViewSet, basename="library")
 
-router.register(r"feedback-questions", FeedbackQuestionViewSet)
+router.register(r"feedback-questions", QuestionViewSet)
 
 router.register(r"payments", UserPaymentViewSet, basename="user-payment")
 

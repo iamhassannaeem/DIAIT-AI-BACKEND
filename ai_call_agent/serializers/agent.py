@@ -6,7 +6,7 @@ from ai_call_agent.models import (
     SalesAgent,
     File,
     AgentFileMapping,
-    FeedbackQuestion,
+    Question,
 )
 
 
@@ -47,10 +47,17 @@ class AITecSerializer(serializers.ModelSerializer):
         fields = ["id", "ai_tec_provider"]
 
 
-class FeedbackQuestionSerializer(serializers.ModelSerializer):
+class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = FeedbackQuestion
-        fields = ["id", "order", "question_text"]
+        model = Question
+        fields = [
+            "id",
+            "order",
+            "question_text",
+            "status",
+            "feedback_agent",
+            "sales_agent",
+        ]
 
 
 class AgentFileMappingSerializer(serializers.ModelSerializer):
@@ -60,7 +67,7 @@ class AgentFileMappingSerializer(serializers.ModelSerializer):
 
 
 class FeedbackAgentDetailsSerializer(serializers.ModelSerializer):
-    feed_questions = FeedbackQuestionSerializer(many=True, required=False)
+    feed_questions = QuestionSerializer(many=True, required=False)
 
     class Meta:
         model = FeedbackAgent
@@ -72,31 +79,24 @@ class FeedbackAgentDetailsSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         feedback_agent = FeedbackAgent.objects.create(user=user, **validated_data)
         for question_data in feed_questions_data:
-            FeedbackQuestion.objects.create(
-                feedback_agent=feedback_agent, **question_data
-            )
+            Question.objects.create(feedback_agent=feedback_agent, **question_data)
         return feedback_agent
 
     def update(self, instance, validated_data):
-        feed_questions_data = validated_data.pop("feed_questions", [])
 
         user = self.context["request"].user
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.user = user
         instance.save()
-        # if feed_questions_data:
-        #     instance.feed_questions.all().delete()
-        #     for question_data in feed_questions_data:
-        #         FeedbackQuestion.objects.create(
-        #             feedback_agent=instance, **question_data
-        #         )
+
         return instance
 
 
 class SalesAgentDetailsSerializer(serializers.ModelSerializer):
     files = serializers.ListField(child=serializers.DictField(), required=False)
     associated_files = serializers.SerializerMethodField()
+    questions = serializers.SerializerMethodField()
 
     class Meta:
         model = SalesAgent
@@ -122,6 +122,7 @@ class SalesAgentDetailsSerializer(serializers.ModelSerializer):
         return sales_agent
 
     def update(self, instance, validated_data):
+
         user = self.context["request"].user
         files_data = validated_data.pop("files", [])
 
@@ -171,3 +172,7 @@ class SalesAgentDetailsSerializer(serializers.ModelSerializer):
             }
             for mapping in mappings
         ]
+
+    def get_questions(self, obj):
+        questions = Question.objects.filter(sales_agent=obj)
+        return QuestionSerializer(questions, many=True).data

@@ -1,5 +1,8 @@
+from django.db.models import Max
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
+from rest_framework import status
+from rest_framework import viewsets
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -11,7 +14,8 @@ from ai_call_agent.models import (
     AITec,
     TwilioNumbers,
     File,
-    FeedbackQuestion,
+    Question,
+    Campaign,
 )
 from ai_call_agent.serializers import (
     FeedbackAgentDetailsSerializer,
@@ -21,7 +25,7 @@ from ai_call_agent.serializers import (
     AIAudioSerializer,
     Twilio_agentNumberSerializer,
     File_agentSerializer,
-    FeedbackQuestionSerializer,
+    QuestionSerializer,
 )
 
 
@@ -93,28 +97,28 @@ class AgentViewSet(viewsets.ViewSet):
         agent_type = request.data.get("agent_type")
 
         if agent_type == "feedback":
-            feed_questions_data = request.data.get("feed_questions", [])
-
-            feed_question_ids = [
-                question.get("id")
-                for question in feed_questions_data
-                if question.get("id")
-            ]
-            for feed_question_id in feed_question_ids:
-                feed_question = get_object_or_404(FeedbackQuestion, pk=feed_question_id)
-                for question_data in feed_questions_data:
-                    if question_data.get("id") == feed_question_id:
-                        feed_question.question_text = question_data.get(
-                            "question_text", feed_question.question_text
-                        )
-
-                        feed_question.save()
             agent = get_object_or_404(FeedbackAgent, pk=pk, user=request.user)
+            if Campaign.objects.filter(feedback_agent=agent).exists():
+                return Response(
+                    {
+                        "error": "This agent is affiliated with an active campaign. Status cannot be changed."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             serializer = FeedbackAgentDetailsSerializer(
                 agent, data=request.data, context={"request": request}
             )
+
         elif agent_type == "sales":
             agent = get_object_or_404(SalesAgent, pk=pk, user=request.user)
+            if Campaign.objects.filter(sales_agent=agent).exists():
+                return Response(
+                    {
+                        "error": "This agent is affiliated with an active campaign. Status cannot be changed."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             serializer = SalesAgentDetailsSerializer(
                 agent, data=request.data, context={"request": request}
             )
@@ -125,7 +129,7 @@ class AgentViewSet(viewsets.ViewSet):
             )
 
         if serializer.is_valid():
-            agent = serializer.save()
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -178,6 +182,76 @@ class InputDataView(viewsets.ViewSet):
         return Response(response_data)
 
 
-class FeedbackQuestionViewSet(viewsets.ModelViewSet):
-    queryset = FeedbackQuestion.objects.all()
-    serializer_class = FeedbackQuestionSerializer
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+
+    def create(self, request, *args, **kwargs):
+        feedback_agent_id = request.data.get("feedback_agent")
+        sales_agent_id = request.data.get("sales_agent")
+
+        if feedback_agent_id:
+            try:
+                feedback_agent = FeedbackAgent.objects.get(id=feedback_agent_id)
+            except FeedbackAgent.DoesNotExist:
+                raise NotFound(detail="FeedbackAgent not found.")
+
+            max_order = Question.objects.filter(
+                feedback_agent=feedback_agent
+            ).aggregate(Max("order"))["order__max"]
+            new_order = (max_order or 0) + 1
+
+            request.data["feedback_agent"] = feedback_agent.id
+            request.data["sales_agent"] = None
+            request.data["order"] = new_order
+
+        elif sales_agent_id:
+            try:
+                sales_agent = SalesAgent.objects.get(id=sales_agent_id)
+            except SalesAgent.DoesNotExist:
+                raise NotFound(detail="SalesAgent not found.")
+
+            max_order = Question.objects.filter(sales_agent=sales_agent).aggregate(
+                Max("order")
+            )["order__max"]
+            new_order = (max_order or 0) + 1
+
+            request.data["sales_agent"] = sales_agent.id
+            request.data["feedback_agent"] = None
+            request.data["order"] = new_order
+
+        else:
+            raise ValidationError(
+                detail="Either feedback_agent or sales_agent must be provided."
+            )
+
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        feedback_agent_id = request.data.get("feedback_agent")
+        sales_agent_id = request.data.get("sales_agent")
+
+        if feedback_agent_id:
+            try:
+                feedback_agent = FeedbackAgent.objects.get(id=feedback_agent_id)
+            except FeedbackAgent.DoesNotExist:
+                raise NotFound(detail="FeedbackAgent not found.")
+
+            request.data["feedback_agent"] = feedback_agent.id
+            request.data["sales_agent"] = None
+
+        elif sales_agent_id:
+            try:
+                sales_agent = SalesAgent.objects.get(id=sales_agent_id)
+            except SalesAgent.DoesNotExist:
+                raise NotFound(detail="SalesAgent not found.")
+
+            request.data["sales_agent"] = sales_agent.id
+            request.data["feedback_agent"] = None
+
+        else:
+            raise ValidationError(
+                detail="Either feedback_agent or sales_agent must be provided."
+            )
+
+        return super().update(request, *args, **kwargs)
