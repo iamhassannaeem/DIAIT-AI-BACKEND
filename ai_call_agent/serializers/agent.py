@@ -1,19 +1,8 @@
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 
-from ai_call_agent.models import AIModel, AITec, AIAudio, TwilioNumbers
-from ai_call_agent.models import (
-    FeedbackAgent,
-    SalesAgent,
-    File,
-    AgentFileMapping,
-    Question,
-)
-
-
-class Twilio_agentNumberSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TwilioNumbers
-        fields = ["id", "phone_number"]
+from ai_call_agent.models import AITec, AIAudio, AIModel, Campaign
+from ai_call_agent.models import Agent, File, Question, AgentFileMapping
 
 
 class File_agentSerializer(serializers.ModelSerializer):
@@ -22,7 +11,6 @@ class File_agentSerializer(serializers.ModelSerializer):
         fields = ["id", "file_name", "file_type"]
 
     def get_file_type(self, obj):
-
         agent_file_mapping = AgentFileMapping.objects.filter(file=obj).first()
         return (
             agent_file_mapping.get_file_type_display() if agent_file_mapping else None
@@ -50,61 +38,16 @@ class AITecSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
-        fields = [
-            "id",
-            "order",
-            "question_text",
-            "status",
-            "feedback_agent",
-            "sales_agent",
-        ]
+        fields = ["id", "order", "question_text", "status", "agent"]
 
 
-class AgentFileMappingSerializer(serializers.ModelSerializer):
+class AgentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AgentFileMapping
-        fields = ["id", "file"]
-
-
-class FeedbackAgentDetailsSerializer(serializers.ModelSerializer):
-    feed_questions = QuestionSerializer(many=True, required=False)
-
-    class Meta:
-        model = FeedbackAgent
-        fields = "__all__"
-        extra_kwargs = {"user": {"read_only": True}}
-
-    def create(self, validated_data):
-        feed_questions_data = validated_data.pop("feed_questions", [])
-        user = self.context["request"].user
-        feedback_agent = FeedbackAgent.objects.create(user=user, **validated_data)
-        for question_data in feed_questions_data:
-            Question.objects.create(feedback_agent=feedback_agent, **question_data)
-        return feedback_agent
-
-    def update(self, instance, validated_data):
-
-        user = self.context["request"].user
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.user = user
-        instance.save()
-
-        return instance
-
-
-class SalesAgentDetailsSerializer(serializers.ModelSerializer):
-    files = serializers.ListField(child=serializers.DictField(), required=False)
-    associated_files = serializers.SerializerMethodField()
-    questions = serializers.SerializerMethodField()
-
-    class Meta:
-        model = SalesAgent
+        model = Agent
         fields = "__all__"
         extra_kwargs = {"user": {"read_only": True}}
 
     def _create_mappings(self, agent, file_data):
-
         for file_entry in file_data:
             file_type = file_entry.get("file_type")
             file_id = file_entry.get("file")
@@ -115,64 +58,43 @@ class SalesAgentDetailsSerializer(serializers.ModelSerializer):
                 )
 
     def create(self, validated_data):
-        user = self.context["request"].user
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            validated_data["user"] = request.user
+
+        questions_data = validated_data.pop("questions", [])
         files_data = validated_data.pop("files", [])
-        sales_agent = SalesAgent.objects.create(user=user, **validated_data)
-        self._create_mappings(sales_agent, files_data)
-        return sales_agent
+        agent = Agent.objects.create(**validated_data)
+
+        self._create_mappings(agent, files_data)
+
+        for question_data in questions_data:
+            Question.objects.create(agent=agent, **question_data)
+
+        return agent
 
     def update(self, instance, validated_data):
-
-        user = self.context["request"].user
+        if Campaign.objects.filter(agent_id=instance.id).exists():
+            return Response(
+                {
+                    "error": "This agent is affiliated with an active campaign. Status cannot be changed."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        questions_data = validated_data.pop("questions", [])
         files_data = validated_data.pop("files", [])
-
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            validated_data["user"] = request.user
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-
-        if "user" in validated_data:
-            instance.user = user
-
         instance.save()
+        if questions_data:
+            instance.questions.all().delete()
+            for question_data in questions_data:
+                Question.objects.create(agent=instance, **question_data)
+        if files_data:
+            AgentFileMapping.objects.filter(agent_details=instance).delete()
+            self._create_mappings(instance, files_data)
 
-        existing_mappings = list(
-            AgentFileMapping.objects.filter(agent_details=instance)
-        )
-        current_file_types = {
-            mapping.file_type: mapping for mapping in existing_mappings
-        }
-        for file_entry in files_data:
-            file_type = file_entry.get("file_type")
-            file_id = file_entry.get("file")
-            if file_type and file_id:
-
-                file_instance = File.objects.get(id=file_id)
-
-                if file_type in current_file_types:
-
-                    current_file_types[file_type].file = file_instance
-                    current_file_types[file_type].save()
-                else:
-
-                    AgentFileMapping.objects.create(
-                        agent_details=instance,
-                        file_type=file_type,
-                        file=file_instance,
-                    )
         return instance
-
-    def get_associated_files(self, obj):
-
-        mappings = AgentFileMapping.objects.filter(agent_details=obj)
-
-        return [
-            {
-                "file_id": mapping.file.id,
-                "file_name": mapping.file.file_name,
-                "file_type": mapping.file_type,
-            }
-            for mapping in mappings
-        ]
-
-    def get_questions(self, obj):
-        questions = Question.objects.filter(sales_agent=obj)
-        return QuestionSerializer(questions, many=True).data

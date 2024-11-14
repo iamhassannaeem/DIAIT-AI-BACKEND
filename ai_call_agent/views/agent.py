@@ -1,156 +1,31 @@
 from django.db.models import Max
-from django.shortcuts import get_object_or_404
-from rest_framework import status
-from rest_framework import viewsets
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework import status, viewsets
+from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ai_call_agent.models import (
-    FeedbackAgent,
-    SalesAgent,
-    AIAudio,
+    Agent,
     AIModel,
     AITec,
+    AIAudio,
     TwilioNumbers,
     File,
     Question,
+    AgentFileMapping,
     Campaign,
 )
-from ai_call_agent.serializers import (
-    FeedbackAgentDetailsSerializer,
-    SalesAgentDetailsSerializer,
+from ai_call_agent.serializers import TwilioNumbersSerializer
+from ai_call_agent.serializers.agent import (
+    AgentSerializer,
     AIModelSerializer,
     AITecSerializer,
     AIAudioSerializer,
-    Twilio_agentNumberSerializer,
     File_agentSerializer,
     QuestionSerializer,
 )
-
-
-class AgentViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
-
-    def create(self, request):
-        agent_type = request.data.get("agent_type")
-
-        if agent_type == "feedback":
-            serializer = FeedbackAgentDetailsSerializer(
-                data=request.data, context={"request": request}
-            )
-        elif agent_type == "sales":
-            serializer = SalesAgentDetailsSerializer(
-                data=request.data, context={"request": request}
-            )
-        else:
-            return Response(
-                {"error": "Invalid agent type specified."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if serializer.is_valid():
-            agent = serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def retrieve(self, request, pk=None, agent_type=None):
-        if agent_type == "feedback":
-            agent = get_object_or_404(FeedbackAgent, pk=pk, user=request.user)
-            serializer = FeedbackAgentDetailsSerializer(agent)
-        elif agent_type == "sales":
-            agent = get_object_or_404(SalesAgent, pk=pk, user=request.user)
-            serializer = SalesAgentDetailsSerializer(agent)
-        else:
-            return Response(
-                {"error": "Invalid agent type specified."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def list(self, request):
-        feedback_agents = FeedbackAgent.objects.filter(user=request.user).order_by(
-            "created_date"
-        )
-        sales_agents = SalesAgent.objects.filter(user=request.user).order_by(
-            "created_date"
-        )
-
-        feedback_data = FeedbackAgentDetailsSerializer(feedback_agents, many=True).data
-        sales_data = SalesAgentDetailsSerializer(sales_agents, many=True).data
-
-        for item in feedback_data:
-            item["type"] = "feedback"
-
-        for item in sales_data:
-            item["type"] = "sales"
-
-        return Response(
-            {
-                "feedback_agents": feedback_data,
-                "sales_agents": sales_data,
-            }
-        )
-
-    def update(self, request, pk=None):
-        agent_type = request.data.get("agent_type")
-
-        if agent_type == "feedback":
-            agent = get_object_or_404(FeedbackAgent, pk=pk, user=request.user)
-            if Campaign.objects.filter(feedback_agent=agent).exists():
-                return Response(
-                    {
-                        "error": "This agent is affiliated with an active campaign. Status cannot be changed."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            serializer = FeedbackAgentDetailsSerializer(
-                agent, data=request.data, context={"request": request}
-            )
-
-        elif agent_type == "sales":
-            agent = get_object_or_404(SalesAgent, pk=pk, user=request.user)
-            if Campaign.objects.filter(sales_agent=agent).exists():
-                return Response(
-                    {
-                        "error": "This agent is affiliated with an active campaign. Status cannot be changed."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            serializer = SalesAgentDetailsSerializer(
-                agent, data=request.data, context={"request": request}
-            )
-        else:
-            return Response(
-                {"error": "Invalid agent type specified."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk=None):
-        agent_type = request.data.get("agent_type")
-
-        if agent_type == "feedback":
-            agent = get_object_or_404(FeedbackAgent, pk=pk, user=request.user)
-        elif agent_type == "sales":
-            agent = get_object_or_404(SalesAgent, pk=pk, user=request.user)
-        else:
-            return Response(
-                {"error": "Invalid agent type specified."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        agent.delete()
-        return Response(
-            {"message": "Agent deleted successfully."},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+from ai_call_agent.serializers.library_serilizer import AgentFileMappingSerializer
 
 
 class InputDataView(viewsets.ViewSet):
@@ -166,9 +41,7 @@ class InputDataView(viewsets.ViewSet):
         ai_model_data = AIModelSerializer(ai_models, many=True).data
         ai_tec_data = AITecSerializer(ai_tecs, many=True).data
         ai_audio_data = AIAudioSerializer(ai_audio, many=True).data
-        twilio_numbers_data = Twilio_agentNumberSerializer(
-            twilio_numbers, many=True
-        ).data
+        twilio_numbers_data = TwilioNumbersSerializer(twilio_numbers, many=True).data
         user_files_data = File_agentSerializer(user_files, many=True).data
 
         response_data = {
@@ -187,71 +60,124 @@ class QuestionViewSet(viewsets.ModelViewSet):
     serializer_class = QuestionSerializer
 
     def create(self, request, *args, **kwargs):
-        feedback_agent_id = request.data.get("feedback_agent")
-        sales_agent_id = request.data.get("sales_agent")
-
-        if feedback_agent_id:
+        agent_id = request.data.get("agent")
+        if agent_id:
             try:
-                feedback_agent = FeedbackAgent.objects.get(id=feedback_agent_id)
-            except FeedbackAgent.DoesNotExist:
-                raise NotFound(detail="FeedbackAgent not found.")
-
-            max_order = Question.objects.filter(
-                feedback_agent=feedback_agent
-            ).aggregate(Max("order"))["order__max"]
+                agent = Agent.objects.get(id=agent_id)
+                print(agent)
+            except Agent.DoesNotExist:
+                raise NotFound(detail="Agent not found.")
+            max_order = Question.objects.filter(agent=agent).aggregate(Max("order"))[
+                "order__max"
+            ]
             new_order = (max_order or 0) + 1
-
-            request.data["feedback_agent"] = feedback_agent.id
-            request.data["sales_agent"] = None
-            request.data["order"] = new_order
-
-        elif sales_agent_id:
-            try:
-                sales_agent = SalesAgent.objects.get(id=sales_agent_id)
-            except SalesAgent.DoesNotExist:
-                raise NotFound(detail="SalesAgent not found.")
-
-            max_order = Question.objects.filter(sales_agent=sales_agent).aggregate(
-                Max("order")
-            )["order__max"]
-            new_order = (max_order or 0) + 1
-
-            request.data["sales_agent"] = sales_agent.id
-            request.data["feedback_agent"] = None
+            request.data["agent"] = agent.id
             request.data["order"] = new_order
 
         else:
-            raise ValidationError(
-                detail="Either feedback_agent or sales_agent must be provided."
-            )
+            raise ValidationError(detail="Agent must be provided.")
 
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        feedback_agent_id = request.data.get("feedback_agent")
-        sales_agent_id = request.data.get("sales_agent")
-
-        if feedback_agent_id:
+        agent_id = request.data.get("agent")
+        if agent_id:
             try:
-                feedback_agent = FeedbackAgent.objects.get(id=feedback_agent_id)
-            except FeedbackAgent.DoesNotExist:
-                raise NotFound(detail="FeedbackAgent not found.")
+                agent = Agent.objects.get(id=agent_id)
+            except Agent.DoesNotExist:
+                raise NotFound(detail="Agent not found.")
 
-            request.data["feedback_agent"] = feedback_agent.id
-            request.data["sales_agent"] = None
-
-        elif sales_agent_id:
-            try:
-                sales_agent = SalesAgent.objects.get(id=sales_agent_id)
-            except SalesAgent.DoesNotExist:
-                raise NotFound(detail="SalesAgent not found.")
-
-            request.data["sales_agent"] = sales_agent.id
-            request.data["feedback_agent"] = None
-
+            request.data["agent"] = agent.id
         else:
-            raise ValidationError(
-                detail="Either feedback_agent or sales_agent must be provided."
+            raise ValidationError(detail="Agent must be provided.")
+        return super().update(request, *args, **kwargs)
+
+
+class AgentViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Agent.objects.all()
+    serializer_class = AgentSerializer
+
+    def get_queryset(self):
+        return self.queryset.filter(user=self.request.user)
+
+    def get_object(self):
+        pk = self.kwargs.get("pk")
+        try:
+            return Agent.objects.get(pk=pk, user=self.request.user)
+        except Agent.DoesNotExist:
+            raise NotFound("Agent not found")
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def retrieve(self, request, *args, **kwargs):
+        agent = self.get_object()
+        questions = Question.objects.filter(agent=agent)
+        questions_serializer = QuestionSerializer(questions, many=True)
+
+        file_mappings = AgentFileMapping.objects.filter(agent_details=agent)
+        file_serializer = AgentFileMappingSerializer(file_mappings, many=True)
+
+        files_data = file_serializer.data
+        for file_data in files_data:
+            file_data.pop("agent_details", None)
+
+        agent_serializer = AgentSerializer(agent)
+
+        merged_data = agent_serializer.data
+        merged_data["questions"] = questions_serializer.data
+        merged_data["files"] = files_data
+
+        return Response(merged_data, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        agent = self.get_object()
+        if Campaign.objects.filter(agent_id=agent.id).exists():
+            return Response(
+                {
+                    "error": "This agent is affiliated with an active campaign. Status cannot be changed."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
+        files_data = request.data.get("files", [])
+        current_file_types = {}
+
+        for file_entry in files_data:
+            file_type = file_entry.get("file_type")
+            file_id = file_entry.get("file")
+
+            if file_type and file_id:
+                try:
+                    file_instance = File.objects.get(id=file_id)
+                except File.DoesNotExist:
+                    return Response(
+                        {"detail": "File not found."}, status=status.HTTP_404_NOT_FOUND
+                    )
+
+                if file_instance.user != request.user:
+                    return Response(
+                        {"detail": "File not associated with the current user."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
+                existing_mapping = AgentFileMapping.objects.filter(
+                    agent_details=agent, file_type=file_type
+                ).first()
+
+                if existing_mapping:
+                    existing_mapping.file = file_instance
+                    existing_mapping.save()
+                else:
+                    AgentFileMapping.objects.create(
+                        agent_details=agent,
+                        file_type=file_type,
+                        file=file_instance,
+                    )
 
         return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        agent = self.get_object()
+        agent.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

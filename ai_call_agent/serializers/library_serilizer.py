@@ -1,11 +1,25 @@
 from rest_framework import serializers
-from ai_call_agent.models import File, FeedbackAgent, AgentFileMapping, SalesAgent
+
+from ai_call_agent.models import File, AgentFileMapping, Agent
 
 
 class AgentDetailsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SalesAgent
-        fields = ["name", "active"]
+        model = Agent
+        fields = [
+            "id",
+            "name",
+            "first_message",
+            "active",
+            "gender",
+            "ai_model",
+            "ai_tec",
+            "voice_name",
+            "created_date",
+            "twillio_number",
+            "tts_technology_provider",
+            "stt_technology_provider",
+        ]
 
 
 class AgentFileMappingSerializer(serializers.ModelSerializer):
@@ -13,7 +27,7 @@ class AgentFileMappingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AgentFileMapping
-        fields = ["file", "agent_details"]
+        fields = ["file", "agent_details", "file_type"]
 
 
 class FileSerializer(serializers.ModelSerializer):
@@ -31,11 +45,11 @@ class FileSerializer(serializers.ModelSerializer):
             "last_modified",
             "created_date",
             "agent_details",
+            "s3_key",
         ]
 
     def get_agent_details(self, obj):
         agent_mappings = obj.agentfilemapping_set.all()
-
         unique_mappings = {}
         for mapping in agent_mappings:
             key = (mapping.file_id, mapping.agent_details.id)

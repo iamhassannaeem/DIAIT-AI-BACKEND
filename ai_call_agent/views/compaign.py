@@ -1,32 +1,29 @@
 from celery.result import AsyncResult
 from django.contrib.auth import get_user_model
-from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from ai_call_agent.models import (
-    CallDetails,
-    FeedbackAgent,
-    SalesAgent,
-    Calllogs,
-    Question,
-)
-from ai_call_agent.serializers import (
-    CampaignSerializer,
-    CallDetailsSerializer,
-    QuestionSerializer,
-    FeedbackReportSerializer,
-)
 from ai_call_agent.tasks import *
-from .utils import stop_campaign_task
+from ai_call_agent.views.utils import stop_campaign_task
 
 User = get_user_model()
 from datetime import datetime
 import pytz
+from ai_call_agent.models import (
+    Agent,
+    CallLog,
+    Contact,
+)
+from ai_call_agent.serializers import (
+    CampaignSerializer,
+    CallLogSerializer,
+    ContactSerializer,
+    CallLogContentSerializer,
+)
 
 
 class CampaignViewSet(viewsets.ModelViewSet):
@@ -34,34 +31,20 @@ class CampaignViewSet(viewsets.ModelViewSet):
     serializer_class = CampaignSerializer
 
     def get_queryset(self):
-        feedback_agent_ids = FeedbackAgent.objects.filter(
-            user=self.request.user
-        ).values_list("id", flat=True)
-        sales_agent_ids = SalesAgent.objects.filter(user=self.request.user).values_list(
+        # Get the list of agent IDs associated with the currently authenticated user
+        agent_ids = Agent.objects.filter(user=self.request.user).values_list(
             "id", flat=True
         )
-        return Campaign.objects.filter(
-            Q(feedback_agent_id__in=feedback_agent_ids)
-            | Q(sales_agent_id__in=sales_agent_ids)
-        )
+
+        # Filter the Campaigns where the 'agent' field matches any of the agent IDs
+        return Campaign.objects.filter(agent_id__in=agent_ids)
 
     def perform_create(self, serializer):
-        print("test")
-        feedback_agents = FeedbackAgent.objects.filter(user=self.request.user)
-        sales_agents = SalesAgent.objects.filter(user=self.request.user)
-
-        if not feedback_agents.exists() and not sales_agents.exists():
-            raise PermissionDenied(
-                "No feedback or sales agent associated with your account."
-            )
+        agents = Agent.objects.filter(user=self.request.user)
+        if not agents.exists():
+            raise PermissionDenied("No  agent associated with your account.")
 
         campaign_type = serializer.validated_data.get("type")
-        if campaign_type == 1:
-            feedback_agent = feedback_agents.first()
-            serializer.save(feedback_agent=feedback_agent)
-        elif campaign_type == 2:
-            sales_agent = sales_agents.first()
-            serializer.save(sales_agent=sales_agent)
 
     def create(self, request, *args, **kwargs):
         return self._process_campaign(request)
@@ -70,34 +53,29 @@ class CampaignViewSet(viewsets.ModelViewSet):
         return self._process_campaign(request, update_instance=True)
 
     def _process_campaign(self, request, update_instance=False):
+
         campaign_data = {
             "name": request.data.get("name"),
             "datetime": request.data.get("datetime"),
             "timezone": request.data.get("timezone"),
             "type": request.data.get("type"),
+            "agent": request.data.get("agent"),
         }
 
-        campaign_type = str(request.data.get("type"))
-        agent_id = request.data.get("agent")
-
-        if campaign_type == "1":
-            agent = FeedbackAgent.objects.filter(id=agent_id).first()
-            if not agent:
-                raise ValidationError("Invalid feedback agent provided.")
-            campaign_data["feedback_agent"] = agent_id
-        elif campaign_type == "2":
-            agent = SalesAgent.objects.filter(id=agent_id).first()
-            if not agent:
-                raise ValidationError("Invalid sales agent provided.")
-            campaign_data["sales_agent"] = agent_id
-        else:
-            raise ValidationError("Invalid campaign type provided.")
+        agent_id = campaign_data["agent"]
+        agent = Agent.objects.filter(id=agent_id).first()
+        if not agent:
+            raise ValidationError("Invalid agent provided.")
+        campaign_data["feedback_agent"] = agent_id
 
         given_datetime_str = request.data.get("datetime")
         timezone_str = request.data.get("timezone")
-        given_datetime = datetime.strptime(given_datetime_str, "%Y-%m-%d %H:%M:%S")
-        timezone = pytz.timezone(timezone_str)
-        given_datetime = timezone.localize(given_datetime)
+        try:
+            given_datetime = datetime.strptime(given_datetime_str, "%Y-%m-%d %H:%M:%S")
+            timezone = pytz.timezone(timezone_str)
+            given_datetime = timezone.localize(given_datetime)
+        except pytz.UnknownTimeZoneError:
+            raise ValidationError("Invalid timezone provided.")
 
         current_time_in_timezone = datetime.now(timezone)
         if given_datetime <= current_time_in_timezone:
@@ -110,17 +88,10 @@ class CampaignViewSet(viewsets.ModelViewSet):
         if update_instance:
             instance = self.get_object()
             old_task_id = instance.task_id
-
-            print("old_task_id", old_task_id)
-            campaign_id = instance.id
-            print("campaign_id", campaign_id)
-
             if old_task_id:
                 try:
                     task = AsyncResult(old_task_id)
                     task.revoke(terminate=True)
-                    print(f"revideed{old_task_id}")
-
                 except Exception as e:
                     print(f"Failed to revoke task {old_task_id}: {str(e)}")
 
@@ -134,6 +105,7 @@ class CampaignViewSet(viewsets.ModelViewSet):
 
         campaign_serializer.is_valid(raise_exception=True)
         campaign = campaign_serializer.save()
+
         task = Ai_task.apply_async((campaign.id,), eta=adjusted_local_time)
         campaign.campaign_local_datetime = adjusted_local_time
         campaign.task_id = task.id
@@ -151,7 +123,7 @@ class CampaignViewSet(viewsets.ModelViewSet):
                 "conversation": call.get("conversation"),
                 "call_cost": call.get("call_cost"),
             }
-            call_detail_serializer = CallDetailsSerializer(data=call_data)
+            call_detail_serializer = CallLogSerializer(data=call_data)
             call_detail_serializer.is_valid(raise_exception=True)
             call_detail_serializer.save()
 
@@ -174,101 +146,34 @@ class StopCampaignTaskViewSet(viewsets.ViewSet):
         )
 
 
-class CallDetailsViewSet(viewsets.ModelViewSet):
-    queryset = CallDetails.objects.all()
-    serializer_class = CallDetailsSerializer
+class ContactViewSet(viewsets.ModelViewSet):
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class CallLogViewSet(viewsets.ModelViewSet):
+    queryset = CallLog.objects.all()
+    serializer_class = CallLogSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
+        print(user)
         campaigns = Campaign.objects.filter(user=user)
-        return CallDetails.objects.filter(campaign__in=campaigns)
+        print(campaigns)
+        return CallLog.objects.filter(campaign__in=campaigns)
 
 
-class FeedbackReportViewSet(viewsets.ModelViewSet):
-    serializer_class = FeedbackReportSerializer
+class CallLogContentView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
+    def get(self, request, pk=None):
+        user = request.user
+        campaigns = Campaign.objects.filter(user=user)
+        call_logs = CallLog.objects.filter(campaign__in=campaigns)
+        serialized_data = CallLogContentSerializer(call_logs, many=True).data
+        filtered_data = [item for item in serialized_data if item["combined_answers"]]
+        return Response(filtered_data)
 
-        feedback_agent_campaigns = Campaign.objects.filter(feedback_agent__user=user)
-        sales_agent_campaigns = Campaign.objects.filter(sales_agent__user=user)
 
-        campaigns = feedback_agent_campaigns | sales_agent_campaigns
-
-        return Calllogs.objects.filter(call_detail__campaign__in=campaigns)
-
-    def list(self, request):
-        reports = (
-            self.get_queryset()
-            .values("call_detail_id")
-            .annotate(
-                answers=ArrayAgg("answer"),
-                sentiments=ArrayAgg("call_sentiments"),
-                feedback_ids=ArrayAgg("feedback_question_id"),
-            )
-        )
-
-        response_data = []
-        for report in reports:
-            feedback_questions = Question.objects.filter(id__in=report["feedback_ids"])
-            questions_data = QuestionSerializer(feedback_questions, many=True).data
-
-            call_detail = CallDetails.objects.filter(
-                id=report["call_detail_id"]
-            ).first()
-            phone_number = call_detail.phone_number if call_detail else "Unknown"
-
-            question_map = {q["id"]: q for q in questions_data}
-
-            combined_answers = []
-            for idx, answer in enumerate(report["answers"]):
-                feedback_id = (
-                    report["feedback_ids"][idx]
-                    if idx < len(report["feedback_ids"])
-                    else None
-                )
-                question_text = question_map.get(feedback_id, {}).get(
-                    "question_text", "Unknown Question"
-                )
-
-                sentiment_text = (
-                    report["sentiments"][idx].strip().capitalize()
-                    if idx < len(report["sentiments"]) and report["sentiments"][idx]
-                    else "Unknown Sentiment"
-                )
-
-                valid_sentiments = dict(Calllogs.SENTIMENT_CHOICES).values()
-                sentiment_display = (
-                    sentiment_text
-                    if sentiment_text in valid_sentiments
-                    else "Unknown Sentiment"
-                )
-
-                combined_answers.append(
-                    {
-                        "answer": answer,
-                        "feedback_question_id": feedback_id,
-                        "question_text": question_text,
-                        "sentiment": sentiment_display,
-                    }
-                )
-
-            response_data.append(
-                {
-                    "call_detail_id": report["call_detail_id"],
-                    "phone_number": phone_number,
-                    "combined_answers": combined_answers,
-                }
-            )
-
-        return Response(response_data)
-
-    def retrieve(self, request, pk=None):
-        try:
-            feedback_report = self.get_queryset().get(id=pk)
-            serializer = FeedbackReportSerializer(feedback_report)
-            return Response(serializer.data)
-        except Calllogs.DoesNotExist:
-            return Response({"detail": "Not found."}, status=404)
