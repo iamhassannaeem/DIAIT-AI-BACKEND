@@ -31,12 +31,9 @@ class CampaignViewSet(viewsets.ModelViewSet):
     serializer_class = CampaignSerializer
 
     def get_queryset(self):
-        # Get the list of agent IDs associated with the currently authenticated user
         agent_ids = Agent.objects.filter(user=self.request.user).values_list(
             "id", flat=True
         )
-
-        # Filter the Campaigns where the 'agent' field matches any of the agent IDs
         return Campaign.objects.filter(agent_id__in=agent_ids)
 
     def perform_create(self, serializer):
@@ -159,9 +156,7 @@ class CallLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        print(user)
         campaigns = Campaign.objects.filter(user=user)
-        print(campaigns)
         return CallLog.objects.filter(campaign__in=campaigns)
 
 
@@ -175,5 +170,3 @@ class CallLogContentView(APIView):
         serialized_data = CallLogContentSerializer(call_logs, many=True).data
         filtered_data = [item for item in serialized_data if item["combined_answers"]]
         return Response(filtered_data)
-
-

@@ -15,6 +15,7 @@ from ai_call_agent.models import (
     Question,
     AgentFileMapping,
     Campaign,
+    Industries,
 )
 from ai_call_agent.serializers import TwilioNumbersSerializer
 from ai_call_agent.serializers.agent import (
@@ -34,11 +35,13 @@ class InputDataView(viewsets.ViewSet):
 
         ai_models = AIModel.objects.all()
         ai_tecs = AITec.objects.all()
+        industry = Industries.objects.all()
         ai_audio = AIAudio.objects.all()
         twilio_numbers = TwilioNumbers.objects.filter(user=user, status="active")
         user_files = File.objects.filter(user=user)
 
         ai_model_data = AIModelSerializer(ai_models, many=True).data
+        industry_data = AIModelSerializer(industry, many=True).data
         ai_tec_data = AITecSerializer(ai_tecs, many=True).data
         ai_audio_data = AIAudioSerializer(ai_audio, many=True).data
         twilio_numbers_data = TwilioNumbersSerializer(twilio_numbers, many=True).data
@@ -50,6 +53,7 @@ class InputDataView(viewsets.ViewSet):
             "voices": ai_audio_data,
             "twilio_numbers": twilio_numbers_data,
             "files": user_files_data,
+            "industry_data": industry_data,
         }
 
         return Response(response_data)
@@ -115,20 +119,16 @@ class AgentViewSet(viewsets.ModelViewSet):
         agent = self.get_object()
         questions = Question.objects.filter(agent=agent)
         questions_serializer = QuestionSerializer(questions, many=True)
-
         file_mappings = AgentFileMapping.objects.filter(agent_details=agent)
         file_serializer = AgentFileMappingSerializer(file_mappings, many=True)
-
         files_data = file_serializer.data
         for file_data in files_data:
             file_data.pop("agent_details", None)
 
         agent_serializer = AgentSerializer(agent)
-
         merged_data = agent_serializer.data
         merged_data["questions"] = questions_serializer.data
         merged_data["files"] = files_data
-
         return Response(merged_data, status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
@@ -142,11 +142,9 @@ class AgentViewSet(viewsets.ModelViewSet):
             )
         files_data = request.data.get("files", [])
         current_file_types = {}
-
         for file_entry in files_data:
             file_type = file_entry.get("file_type")
             file_id = file_entry.get("file")
-
             if file_type and file_id:
                 try:
                     file_instance = File.objects.get(id=file_id)
@@ -154,17 +152,14 @@ class AgentViewSet(viewsets.ModelViewSet):
                     return Response(
                         {"detail": "File not found."}, status=status.HTTP_404_NOT_FOUND
                     )
-
                 if file_instance.user != request.user:
                     return Response(
                         {"detail": "File not associated with the current user."},
                         status=status.HTTP_403_FORBIDDEN,
                     )
-
                 existing_mapping = AgentFileMapping.objects.filter(
                     agent_details=agent, file_type=file_type
                 ).first()
-
                 if existing_mapping:
                     existing_mapping.file = file_instance
                     existing_mapping.save()
@@ -174,7 +169,6 @@ class AgentViewSet(viewsets.ModelViewSet):
                         file_type=file_type,
                         file=file_instance,
                     )
-
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):

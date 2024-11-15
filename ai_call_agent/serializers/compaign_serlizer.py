@@ -19,6 +19,7 @@ class CallLogSerializer(serializers.ModelSerializer):
     contact = serializers.PrimaryKeyRelatedField(
         queryset=Contact.objects.all(), required=False
     )
+
     class Meta:
         model = CallLog
         fields = [
@@ -40,6 +41,7 @@ class CallLogSerializer(serializers.ModelSerializer):
 
 class CallLogContentSerializer(serializers.ModelSerializer):
     combined_answers = serializers.SerializerMethodField()
+
     class Meta:
         model = CallLog
         fields = [
@@ -129,5 +131,3 @@ class CampaignSerializer(serializers.ModelSerializer):
                 CallLog.objects.create(**call_detail)
 
         return instance
-
-

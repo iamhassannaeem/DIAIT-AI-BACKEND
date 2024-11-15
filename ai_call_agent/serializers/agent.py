@@ -1,7 +1,7 @@
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from ai_call_agent.models import AITec, AIAudio, AIModel, Campaign
+from ai_call_agent.models import AITec, AIAudio, AIModel, Campaign, Industries
 from ai_call_agent.models import Agent, File, Question, AgentFileMapping
 
 
@@ -33,6 +33,12 @@ class AITecSerializer(serializers.ModelSerializer):
     class Meta:
         model = AITec
         fields = ["id", "ai_tec_provider"]
+
+
+class AIIndustrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Industries
+        fields = ["id", "interest"]
 
 
 class QuestionSerializer(serializers.ModelSerializer):

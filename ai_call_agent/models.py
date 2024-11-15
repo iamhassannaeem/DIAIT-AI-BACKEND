@@ -39,6 +39,13 @@ class AIAudio(models.Model):
     ai_audio_provider = models.CharField(max_length=20)
 
 
+class Industries(models.Model):
+    interest = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Agent(models.Model):
     AGENT_TYPE_CHOICES = [
         ("feedback", "Feedback Agent"),
@@ -83,6 +90,10 @@ class Agent(models.Model):
         null=True,
         blank=True,
     )
+    industry = models.ForeignKey(
+        Industries, on_delete=models.CASCADE, blank=True, null=True
+    )
+    workflow = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if self.twillio_number:
@@ -236,33 +247,3 @@ class CallLog(models.Model):
 
     def __str__(self):
         return f"CallLog - {self.phone_number} ({self.status})"
-
-
-# class CallDetails(models.Model):
-#     phone_number = models.CharField(max_length=15)
-#     tag = models.CharField(max_length=50, null=True, blank=True)
-#     call_start_time = models.DateTimeField(null=True, blank=True)
-#     call_end_time = models.DateTimeField(null=True, blank=True)
-#     call_duaration = models.DateTimeField(null=True, blank=True)
-#     conversation = models.TextField(null=True, blank=True)
-#     status = models.TextField(null=True, blank=True)
-#     call_cost = models.DecimalField(
-#         max_digits=18, decimal_places=2, null=True, blank=True
-#     )
-#     campaign = models.ForeignKey(
-#         Campaign, on_delete=models.CASCADE, related_name="calls"
-#     )
-#
-#     def __str__(self):
-#         return f"Call - {self.phone_number} ({self.get_status_display()})"
-
-
-# class CallLog(models.Model):
-#
-#     call_detail = models.ForeignKey(CallDetails, on_delete=models.CASCADE)
-#     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-#     answer = models.TextField()
-#     call_sentiments = models.TextField(null=True, blank=True)
-#
-#     def __str__(self):
-#         return f"Feedback - {self.call_detail}"
