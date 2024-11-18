@@ -25,6 +25,7 @@ from ai_call_agent.serializers.agent import (
     AIAudioSerializer,
     File_agentSerializer,
     QuestionSerializer,
+    AIIndustrySerializer,
 )
 from ai_call_agent.serializers.library_serilizer import AgentFileMappingSerializer
 
@@ -41,7 +42,7 @@ class InputDataView(viewsets.ViewSet):
         user_files = File.objects.filter(user=user)
 
         ai_model_data = AIModelSerializer(ai_models, many=True).data
-        industry_data = AIModelSerializer(industry, many=True).data
+        industry_data = AIIndustrySerializer(industry, many=True).data
         ai_tec_data = AITecSerializer(ai_tecs, many=True).data
         ai_audio_data = AIAudioSerializer(ai_audio, many=True).data
         twilio_numbers_data = TwilioNumbersSerializer(twilio_numbers, many=True).data

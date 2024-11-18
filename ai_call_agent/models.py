@@ -226,6 +226,7 @@ class Contact(models.Model):
 
 
 class CallLog(models.Model):
+
     phone_number = models.CharField(max_length=15)
     tag = models.CharField(max_length=50, null=True, blank=True)
     call_start_time = models.DateTimeField(null=True, blank=True)
@@ -247,3 +248,19 @@ class CallLog(models.Model):
 
     def __str__(self):
         return f"CallLog - {self.phone_number} ({self.status})"
+
+
+class ToolsCost(models.Model):
+    call_log = models.ForeignKey(
+        CallLog, on_delete=models.CASCADE, related_name="tools_costs"
+    )
+    server_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    openai_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    deepgram_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    twilio_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return (
+            f"Server: {self.server_cost}, OpenAI: {self.openai_cost}, "
+            f"Deepgram: {self.deepgram_cost}, Twilio: {self.twilio_cost}"
+        )
