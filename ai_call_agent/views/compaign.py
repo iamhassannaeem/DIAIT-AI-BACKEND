@@ -17,6 +17,7 @@ from ai_call_agent.models import (
     Agent,
     CallLog,
     Contact,
+    Campaign,
 )
 from ai_call_agent.serializers import (
     CampaignSerializer,
@@ -48,6 +49,23 @@ class CampaignViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         return self._process_campaign(request, update_instance=True)
+
+    def destroy(self, request, *args, **kwargs):
+
+        instance = self.get_object()
+        old_task_id = instance.task_id
+        if old_task_id:
+            try:
+                task = AsyncResult(old_task_id)
+                task.revoke(terminate=True)
+            except Exception as e:
+                print(f"Failed to revoke task {old_task_id}: {str(e)}")
+
+        instance.delete()
+        return Response(
+            {"detail": "Campaign deleted successfully."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
     def _process_campaign(self, request, update_instance=False):
 

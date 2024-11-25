@@ -30,13 +30,11 @@ class FileViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         file_obj = self.request.FILES.get("file")
-
         if not file_obj:
             return Response(
                 {"error": "No file uploaded"}, status=status.HTTP_400_BAD_REQUEST
             )
-
-        if file_obj.size > 100 * 1024 * 1024:  # 100 MB
+        if file_obj.size > 100 * 1024 * 1024:
             return Response(
                 {"error": "File size exceeds 100 MB limit."},
                 status=status.HTTP_400_BAD_REQUEST,

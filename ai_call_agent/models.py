@@ -24,18 +24,43 @@ class TwilioNumbers(models.Model):
         return f"Twilio Number: {self.phone_number}, Status: {self.status}"
 
 
-class AIModel(models.Model):
+class Provider(models.Model):
+    provider_name = models.CharField(max_length=100, unique=True)
 
-    ai_model_provider = models.CharField(max_length=20)
+    def __str__(self):
+        return self.provider_name
 
 
-class AITec(models.Model):
+class ProviderCost(models.Model):
+    CATEGORY_CHOICES = [
+        ("TTS", "tts"),
+        ("STT", "stt"),
+        ("LLM", "llm"),
+        ("Server", "server"),
+    ]
+    PROVIDER_TYPE_CHOICES = [
+        (1, "Outbound_feedback"),
+        (2, "Outbound_sales"),
+    ]
 
-    ai_tec_provider = models.CharField(max_length=20)
+    provider = models.ForeignKey(
+        Provider, on_delete=models.CASCADE, related_name="costs"
+    )
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2)
+    sell_price = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.CharField(max_length=8, choices=CATEGORY_CHOICES)
+    provider_type = models.CharField(
+        max_length=8, choices=PROVIDER_TYPE_CHOICES, null=True, blank=True
+    )
+
+    def __str__(self):
+        return (
+            f"{self.provider.provider_name} - {self.get_category_display()} - "
+            f"Sell Price: ${self.sell_price} - Type: {self.get_provider_type_display()}"
+        )
 
 
 class AIAudio(models.Model):
-
     ai_audio_provider = models.CharField(max_length=20)
 
 
@@ -61,10 +86,6 @@ class Agent(models.Model):
         blank=True,
         null=True,
     )
-    ai_model = models.ForeignKey(
-        AIModel, on_delete=models.CASCADE, blank=True, null=True
-    )
-    ai_tec = models.ForeignKey(AITec, on_delete=models.CASCADE, blank=True, null=True)
     voice_name = models.ForeignKey(
         AIAudio, on_delete=models.CASCADE, blank=True, null=True
     )
@@ -76,20 +97,6 @@ class Agent(models.Model):
         TwilioNumbers, on_delete=models.CASCADE, null=True, blank=True
     )
 
-    tts_technology_provider = models.ForeignKey(
-        AITec,
-        on_delete=models.CASCADE,
-        related_name="%(class)s_tts_technology_provider",
-        null=True,
-        blank=True,
-    )
-    stt_technology_provider = models.ForeignKey(
-        AITec,
-        on_delete=models.CASCADE,
-        related_name="%(class)s_stt_technology_provider",
-        null=True,
-        blank=True,
-    )
     industry = models.ForeignKey(
         Industries, on_delete=models.CASCADE, blank=True, null=True
     )
@@ -235,7 +242,7 @@ class CallLog(models.Model):
     conversation = models.TextField(null=True, blank=True)
     status = models.TextField(null=True, blank=True)
     call_cost = models.DecimalField(
-        max_digits=18, decimal_places=2, null=True, blank=True
+        max_digits=18, decimal_places=5, null=True, blank=True
     )
     campaign = models.ForeignKey(
         "Campaign", on_delete=models.CASCADE, related_name="call_logs"
@@ -250,17 +257,21 @@ class CallLog(models.Model):
         return f"CallLog - {self.phone_number} ({self.status})"
 
 
-class ToolsCost(models.Model):
+class Costtb(models.Model):
     call_log = models.ForeignKey(
-        CallLog, on_delete=models.CASCADE, related_name="tools_costs"
+        CallLog, on_delete=models.CASCADE, related_name="provider_costs"
     )
-    server_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    openai_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    deepgram_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    twilio_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    provider = models.ForeignKey(
+        Provider, on_delete=models.CASCADE, related_name="call_costs"
+    )
+    sell_cost = models.DecimalField(max_digits=10, decimal_places=5, default=0.00)
+    cost = models.DecimalField(max_digits=18, decimal_places=5, null=True, blank=True)
+    Total_sell_cost = models.DecimalField(
+        max_digits=18, decimal_places=5, null=True, blank=True
+    )
 
     def __str__(self):
         return (
-            f"Server: {self.server_cost}, OpenAI: {self.openai_cost}, "
-            f"Deepgram: {self.deepgram_cost}, Twilio: {self.twilio_cost}"
+            f"{self.provider.provider_name}: sell_cost : {self.sell_cost }, "
+            f"Cost: {self.cost}, Total_sell_cost: {self.Total_sell_cost}"
         )

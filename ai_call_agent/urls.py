@@ -1,11 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
 
-# from .views import (
-#     CampaignViewSet,
-#     CallDetailsViewSet,
-#     FeedbackReportViewSet,
-# )
 from .views import (
     TwilioNumbersViewSet,
     FileViewSet,
