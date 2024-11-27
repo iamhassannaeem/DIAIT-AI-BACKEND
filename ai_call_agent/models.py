@@ -252,6 +252,8 @@ class CallLog(models.Model):
     contact = models.ForeignKey(
         Contact, on_delete=models.SET_NULL, null=True, blank=True
     )
+    call_task_id = models.CharField(max_length=255, null=True, blank=True)
+    call_sid = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"CallLog - {self.phone_number} ({self.status})"
@@ -262,13 +264,10 @@ class Costtb(models.Model):
         CallLog, on_delete=models.CASCADE, related_name="provider_costs"
     )
     provider = models.ForeignKey(
-        Provider, on_delete=models.CASCADE, related_name="call_costs"
+        ProviderCost, on_delete=models.CASCADE, related_name="call_costs"
     )
     sell_cost = models.DecimalField(max_digits=10, decimal_places=5, default=0.00)
     cost = models.DecimalField(max_digits=18, decimal_places=5, null=True, blank=True)
-    Total_sell_cost = models.DecimalField(
-        max_digits=18, decimal_places=5, null=True, blank=True
-    )
 
     def __str__(self):
         return (
