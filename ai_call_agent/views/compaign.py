@@ -1,8 +1,11 @@
 from celery.result import AsyncResult
 from django.contrib.auth import get_user_model
+from django.db.models import Sum, ExpressionWrapper, F, DurationField, Min, Max
+from django.db.models.functions import TruncDate
+from django.utils.dateparse import parse_date
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,7 +14,7 @@ from ai_call_agent.tasks import *
 from ai_call_agent.views.utils import stop_campaign_task
 
 User = get_user_model()
-from datetime import datetime
+from datetime import datetime, date
 import pytz
 from ai_call_agent.models import (
     Agent,
@@ -162,9 +165,14 @@ class StopCampaignTaskViewSet(viewsets.ViewSet):
 
 
 class ContactViewSet(viewsets.ModelViewSet):
-    queryset = Contact.objects.all()
     serializer_class = ContactSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        campaigns = Campaign.objects.filter(user=user)
+        call_logs = CallLog.objects.filter(campaign__in=campaigns)
+        return Contact.objects.filter(id__in=call_logs.values("contact_id"))
 
 
 class CallLogViewSet(viewsets.ModelViewSet):
@@ -175,7 +183,124 @@ class CallLogViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         campaigns = Campaign.objects.filter(user=user)
-        return CallLog.objects.filter(campaign__in=campaigns)
+        queryset = CallLog.objects.filter(campaign__in=campaigns)
+
+        start_date = self.request.query_params.get("start_date", None)
+        end_date = self.request.query_params.get("end_date", None)
+
+        if start_date and end_date:
+            try:
+                start_date = parse_date(start_date)
+                end_date = parse_date(end_date)
+
+                if start_date and end_date:
+                    queryset = queryset.filter(
+                        call_start_time__date__gte=start_date,
+                        call_start_time__date__lte=end_date,
+                    )
+                else:
+                    raise ValidationError("Invalid date format. Use 'YYYY-MM-DD'.")
+            except ValueError:
+                raise ValidationError(
+                    "Invalid 'start_date' or 'end_date' format. Use 'YYYY-MM-DD'."
+                )
+        if not queryset.exists():
+            raise NotFound("No call logs found for the given date range.")
+
+        return queryset
+
+    @action(detail=False, methods=["get"])
+    def usage_statistics(self, request):
+        user = request.user
+        today = date.today()
+        start_of_month = today.replace(day=1)
+        try:
+            daily_usage_today = (
+                self.get_queryset()
+                .filter(call_start_time__date=today)
+                .aggregate(
+                    total_cost=Sum("call_cost"),
+                    total_duration=Sum(
+                        ExpressionWrapper(
+                            F("call_duration"), output_field=DurationField()
+                        )
+                    ),
+                )
+            )
+            total_cost_today = daily_usage_today.get("total_cost", 0)
+            total_duration_today = daily_usage_today.get("total_duration", 0)
+            monthly_usage = (
+                self.get_queryset()
+                .filter(call_start_time__date__gte=start_of_month)
+                .aggregate(
+                    total_cost=Sum("call_cost"),
+                    total_duration=Sum(
+                        ExpressionWrapper(
+                            F("call_duration"), output_field=DurationField()
+                        )
+                    ),
+                    first_date=Min("call_start_time"),
+                    last_date=Max("call_start_time"),
+                )
+            )
+
+            total_cost_month = monthly_usage.get("total_cost", 0)
+            total_duration_month = monthly_usage.get("total_duration", 0)
+            first_date = monthly_usage.get("first_date")
+            last_date = monthly_usage.get("last_date")
+            daily_usage_details = (
+                self.get_queryset()
+                .annotate(day=TruncDate("call_start_time"))
+                .values("day")
+                .annotate(
+                    total_cost=Sum("call_cost"),
+                    total_duration=Sum(
+                        ExpressionWrapper(
+                            F("call_duration"), output_field=DurationField()
+                        )
+                    ),
+                )
+                .order_by("day")
+            )
+            daily_details = [
+                {
+                    "date": entry["day"],
+                    "total_cost": entry["total_cost"],
+                    "total_duration": (
+                        str(entry["total_duration"])
+                        if entry["total_duration"]
+                        else "0:00:00"
+                    ),
+                }
+                for entry in daily_usage_details
+                if entry["day"] is not None
+            ]
+            return Response(
+                {
+                    "daily_usage_today": {
+                        "total_cost": total_cost_today,
+                        "total_duration": (
+                            str(total_duration_today)
+                            if total_duration_today
+                            else "0:00:00"
+                        ),
+                    },
+                    "monthly_usage": {
+                        "total_cost": total_cost_month,
+                        "total_duration": (
+                            str(total_duration_month)
+                            if total_duration_month
+                            else "0:00:00"
+                        ),
+                        "first_date": first_date,
+                        "last_date": last_date,
+                    },
+                    "daily_usage_details": daily_details,
+                }
+            )
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 
 
 class CallLogContentView(APIView):

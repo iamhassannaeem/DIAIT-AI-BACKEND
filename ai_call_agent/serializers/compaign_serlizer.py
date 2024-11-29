@@ -11,7 +11,7 @@ from ai_call_agent.models import (
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
-        fields = ["id", "phone_number", "email", "address"]
+        fields = ["id", "phone_number", "email", "address", "date_of_birth", "tag"]
 
 
 class CallLogSerializer(serializers.ModelSerializer):
