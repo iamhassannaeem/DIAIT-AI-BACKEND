@@ -214,21 +214,19 @@ class CallLogViewSet(viewsets.ModelViewSet):
         user = request.user
         today = date.today()
         start_of_month = today.replace(day=1)
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
         try:
-            daily_usage_today = (
-                self.get_queryset()
-                .filter(call_start_time__date=today)
-                .aggregate(
-                    total_cost=Sum("call_cost"),
-                    total_duration=Sum(
-                        ExpressionWrapper(
-                            F("call_duration"), output_field=DurationField()
-                        )
-                    ),
-                )
-            )
-            total_cost_today = daily_usage_today.get("total_cost", 0)
-            total_duration_today = daily_usage_today.get("total_duration", 0)
+            if start_date and end_date:
+                start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+                end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+                filter_kwargs = {
+                    "call_start_time__date__gte": start_date,
+                    "call_start_time__date__lte": end_date,
+                }
+            else:
+                filter_kwargs = {}
             monthly_usage = (
                 self.get_queryset()
                 .filter(call_start_time__date__gte=start_of_month)
@@ -246,10 +244,44 @@ class CallLogViewSet(viewsets.ModelViewSet):
 
             total_cost_month = monthly_usage.get("total_cost", 0)
             total_duration_month = monthly_usage.get("total_duration", 0)
-            first_date = monthly_usage.get("first_date")
-            last_date = monthly_usage.get("last_date")
+            first_date_month = monthly_usage.get("first_date")
+            last_date_month = monthly_usage.get("last_date")
+            daily_usage_today = (
+                self.get_queryset()
+                .filter(call_start_time__date=today)
+                .aggregate(
+                    total_cost=Sum("call_cost"),
+                    total_duration=Sum(
+                        ExpressionWrapper(
+                            F("call_duration"), output_field=DurationField()
+                        )
+                    ),
+                )
+            )
+            total_cost_today = daily_usage_today.get("total_cost", 0)
+            total_duration_today = daily_usage_today.get("total_duration", 0)
+            range_usage = (
+                self.get_queryset()
+                .filter(**filter_kwargs)
+                .aggregate(
+                    total_cost=Sum("call_cost"),
+                    total_duration=Sum(
+                        ExpressionWrapper(
+                            F("call_duration"), output_field=DurationField()
+                        )
+                    ),
+                    first_date=Min("call_start_time"),
+                    last_date=Max("call_start_time"),
+                )
+            )
+
+            total_cost_range = range_usage.get("total_cost", 0)
+            total_duration_range = range_usage.get("total_duration", 0)
+            first_date_range = range_usage.get("first_date")
+            last_date_range = range_usage.get("last_date")
             daily_usage_details = (
                 self.get_queryset()
+                .filter(**filter_kwargs)
                 .annotate(day=TruncDate("call_start_time"))
                 .values("day")
                 .annotate(
@@ -262,6 +294,7 @@ class CallLogViewSet(viewsets.ModelViewSet):
                 )
                 .order_by("day")
             )
+
             daily_details = [
                 {
                     "date": entry["day"],
@@ -275,15 +308,18 @@ class CallLogViewSet(viewsets.ModelViewSet):
                 for entry in daily_usage_details
                 if entry["day"] is not None
             ]
+
             return Response(
                 {
-                    "daily_usage_today": {
-                        "total_cost": total_cost_today,
+                    "range_usage": {
+                        "total_cost": total_cost_range,
                         "total_duration": (
-                            str(total_duration_today)
-                            if total_duration_today
+                            str(total_duration_range)
+                            if total_duration_range
                             else "0:00:00"
                         ),
+                        "first_date": first_date_range,
+                        "last_date": last_date_range,
                     },
                     "monthly_usage": {
                         "total_cost": total_cost_month,
@@ -292,8 +328,16 @@ class CallLogViewSet(viewsets.ModelViewSet):
                             if total_duration_month
                             else "0:00:00"
                         ),
-                        "first_date": first_date,
-                        "last_date": last_date,
+                        "first_date": first_date_month,
+                        "last_date": last_date_month,
+                    },
+                    "daily_usage_today": {
+                        "total_cost": total_cost_today,
+                        "total_duration": (
+                            str(total_duration_today)
+                            if total_duration_today
+                            else "0:00:00"
+                        ),
                     },
                     "daily_usage_details": daily_details,
                 }

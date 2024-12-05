@@ -16,7 +16,7 @@ SECRET_KEY = env.str("SECRET_KEY", default="")
 
 # ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS", default=["192.168.99.6", "localhost", "127.0.0.1"]
+    "ALLOWED_HOSTS", default=["192.168.18.29", "localhost", "127.0.0.1"]
 )
 
 AUTH_USER_MODEL = "authentication.User"
@@ -115,8 +115,6 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
 }
 
-STRIPE_API_SECRET_KEY = env.str("STRIPE_API_SECRET_KEY", default="")
-STRIPE_API_PUBLIC_KEY = env.str("STRIPE_API_PUBLIC_KEY", default="")
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -140,19 +138,20 @@ AWS_ACCESS_KEY_ID = env("S3_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = env("S3_SECRET_ACCESS_KEY")
 AWS_S3_BUCKET_NAME = env("AWS_S3_BUCKET_NAME")
 
+STRIPE_API_SECRET_KEY = env("STRIPE_SECRET_KEY")
+STRIPE_API_PUBLIC_KEY = env("STRIPE_PUBLISHABLE_KEY")
+
 
 CELERY_BROKER_URL = "amqp://guest:guest@localhost//"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
-# CELERY_RESULT_BACKEND = "rpc://"  # Result backend, using RabbitMQ as well
+# CELERY_RESULT_BACKEND = "rpc://"
 # CELERY_TIMEZONE = "UTC"
 
-
+# DATABASE_URL=postgresql://postgres:Dell%40123%21%40%23%40%40@156.67.27.135/Dialit_db
 # celery -A  worker --pool=gevent --loglevel=info
-STRIPE_SECRET_KEY = "sk_test_51QJZKBG1zx6NU6uvlBQsJmXxif8OqT64LdgHaIphzFWGUWhr7EXvdVXBTIGFkEecv2GYBVavPPaRA3kcI3ufxfPK00l8ngvwFV"
-STRIPE_PUBLISHABLE_KEY = "pk_test_51QJZKBG1zx6NU6uvtdaq4itYhqDRDXcxrAJxlvKfIC0mOpYe9il40xio2i2ElIUEZSliaTm4wvK2s2ezwzDKrnQd00ePhLf6dg"
-# Cost rates per minute
-SERVER_COST = 0.02
-OPENAI_COST = 0.05
-DEEPGRAM_COST = 0.03
-TWILIO_COST = 0.10
+
+
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_DB = 0

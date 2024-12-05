@@ -11,11 +11,25 @@ from ai_call_agent.models import (
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
-        fields = ["id", "phone_number", "email", "address", "date_of_birth", "tag"]
+        fields = [
+            "id",
+            "phone_number",
+            "email",
+            "address",
+            "date_of_birth",
+            "tag",
+            "full_name",
+        ]
 
 
 class CallLogSerializer(serializers.ModelSerializer):
-    campaign = serializers.PrimaryKeyRelatedField(queryset=Campaign.objects.all())
+    campaign_name = serializers.CharField(source="campaign.name", read_only=True)
+    agent_type = serializers.CharField(
+        source="campaign.agent.agent_type", read_only=True
+    )
+    agent = serializers.PrimaryKeyRelatedField(
+        queryset=Agent.objects.all(), required=False
+    )
     contact = serializers.PrimaryKeyRelatedField(
         queryset=Contact.objects.all(), required=False
     )
@@ -33,6 +47,9 @@ class CallLogSerializer(serializers.ModelSerializer):
             "status",
             "call_cost",
             "campaign",
+            "campaign_name",
+            "agent",
+            "agent_type",
             "content",
             "sentiments",
             "contact",

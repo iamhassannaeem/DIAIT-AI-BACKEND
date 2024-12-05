@@ -18,8 +18,6 @@ from ai_call_agent.models import (
 from ai_call_agent.serializers import TwilioNumbersSerializer
 from ai_call_agent.serializers.agent import (
     AgentSerializer,
-    # AIModelSerializer,
-    # AITecSerializer,
     AIAudioSerializer,
     File_agentSerializer,
     QuestionSerializer,
@@ -32,16 +30,11 @@ class InputDataView(viewsets.ViewSet):
     def list(self, request):
         user = request.user
 
-        # ai_models = AIModel.objects.all()
-        # ai_tecs = AITec.objects.all()
         industry = Industries.objects.all()
         ai_audio = AIAudio.objects.all()
         twilio_numbers = TwilioNumbers.objects.filter(user=user, status="active")
         user_files = File.objects.filter(user=user)
-
-        # ai_model_data = AIModelSerializer(ai_models, many=True).data
         industry_data = AIIndustrySerializer(industry, many=True).data
-        # ai_tec_data = AITecSerializer(ai_tecs, many=True).data
         ai_audio_data = AIAudioSerializer(ai_audio, many=True).data
         twilio_numbers_data = TwilioNumbersSerializer(twilio_numbers, many=True).data
         user_files_data = File_agentSerializer(user_files, many=True).data

@@ -19,7 +19,7 @@ router = routers.DefaultRouter()
 router.register(r"campaigns", CampaignViewSet, basename="outbound-campaigns")
 router.register(r"call/logs", CallLogViewSet, basename="call-dtaeils")
 router.register(r"stopcampaigns", StopCampaignTaskViewSet, basename="campaigns")
-router.register(r"contacts", ContactViewSet)
+router.register(r"contacts", ContactViewSet, basename="contacts")
 
 router.register("agent", AgentViewSet, basename="agent")
 router.register("agents/InputData", InputDataView, basename="InputData")

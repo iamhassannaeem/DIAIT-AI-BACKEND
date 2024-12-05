@@ -71,10 +71,37 @@ class Industries(models.Model):
         return self.name
 
 
+class ClinicDetails(models.Model):
+    agent = models.ForeignKey(
+        "Agent", on_delete=models.CASCADE, related_name="appointments"
+    )
+    clinic_name = models.CharField(max_length=255, blank=True, null=True)
+    services = models.TextField(blank=True, null=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
+    timing = models.CharField(max_length=100, blank=True, null=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+
+class DoctorDetails(models.Model):
+    clinic = models.ForeignKey(
+        "ClinicDetails", on_delete=models.CASCADE, related_name="doctors"
+    )
+    name = models.CharField(max_length=255, blank=False, null=False)
+    specialization = models.CharField(max_length=255, blank=True, null=True)
+    contact_number = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    available_timings = models.CharField(max_length=255, blank=True, null=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Agent(models.Model):
     AGENT_TYPE_CHOICES = [
         ("feedback", "Feedback Agent"),
         ("sales", "Sales Agent"),
+        ("appointment", "Appointment Agent"),
     ]
     first_message = models.CharField(max_length=100, blank=True, null=True)
     name = models.CharField(max_length=100, blank=True, null=True)
@@ -96,7 +123,6 @@ class Agent(models.Model):
     twillio_number = models.ForeignKey(
         TwilioNumbers, on_delete=models.CASCADE, null=True, blank=True
     )
-
     industry = models.ForeignKey(
         Industries, on_delete=models.CASCADE, blank=True, null=True
     )
@@ -225,6 +251,7 @@ class Campaign(models.Model):
 
 class Contact(models.Model):
     phone_number = models.CharField(max_length=15)
+    full_name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     address = models.TextField(null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)

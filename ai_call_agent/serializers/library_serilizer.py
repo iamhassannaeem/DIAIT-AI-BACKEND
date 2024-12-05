@@ -17,8 +17,6 @@ class AgentDetailsSerializer(serializers.ModelSerializer):
             "voice_name",
             "created_date",
             "twillio_number",
-            "tts_technology_provider",
-            "stt_technology_provider",
         ]
 
 

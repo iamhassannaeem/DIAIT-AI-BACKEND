@@ -1,25 +1,38 @@
-import os
-import json
 import ast
-from openai import OpenAI
+import os
+
 from dotenv import load_dotenv
+from openai import OpenAI
+
 load_dotenv()
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 
+def process_answers(questions, data, max_tries=3, attempt=1):
 
-def process_answers(questions, data, max_tries = 3 , attempt = 1):
-
-
-    output_struct = [{'id': 238, 'question_text': 'this is sample question one', 'answer' : 'your provided answer should be placed here'}, 
-                     {'id': 239, 'question_text': 'this is sample question two', 'answer' : 'your provided answer should be placed here'},
-                     {'id': 240, 'question_text': 'what is next ', 'answer' : 'your process will be countinued for all input question'}]
-    
+    output_struct = [
+        {
+            "id": 238,
+            "question_text": "this is sample question one",
+            "answer": "your provided answer should be placed here",
+        },
+        {
+            "id": 239,
+            "question_text": "this is sample question two",
+            "answer": "your provided answer should be placed here",
+        },
+        {
+            "id": 240,
+            "question_text": "what is next ",
+            "answer": "your process will be countinued for all input question",
+        },
+    ]
 
     chat_completion = client.chat.completions.create(
         messages=[
-            {"role": "system",
-            "content" : f"""You are a Reading Comprehension assistant:
+            {
+                "role": "system",
+                "content": f"""You are a Reading Comprehension assistant:
 
                                 This refers to the ability to read, understand, and interpret written texts. It involves not just reading the words, but understanding the meaning, context, and structure of what is being communicated.
                                 Example: In school tests, students are often asked to read a passage and then answer questions based on what they've understood — this is known as a reading comprehension test.
@@ -40,28 +53,24 @@ def process_answers(questions, data, max_tries = 3 , attempt = 1):
                                 - Do not bother to change the 'id' key/value or 'question_text' key/value.                                     
                                       
                                 """,
-                      
-                                },
-
+            },
             {
                 "role": "user",
                 "content": f" Here you are provided with the {questions}. and following the next is the conversation {data}. Please follow all the instructions advised to you.",
-            }
+            },
         ],
         model="gpt-4o-mini",
-        temperature=0.5
+        temperature=0.5,
     )
 
     received_data = chat_completion.choices[0].message.content
     try:
         received_data = ast.literal_eval(received_data)
-        print(received_data)
+        # print(received_data)
         return received_data
     except:
         if attempt >= max_tries:
             for item in questions:
-                item['answer'] = 'can not resolve the issue'
+                item["answer"] = "can not resolve the issue"
             return questions
-        return process_answers(questions, data, max_tries, attempt= attempt + 1)
-
-
+        return process_answers(questions, data, max_tries, attempt=attempt + 1)

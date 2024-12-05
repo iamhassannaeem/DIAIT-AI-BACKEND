@@ -1,25 +1,33 @@
 import os
-import django
 import sys
-import asyncio
+
+import django
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')  
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 from django.utils import timezone
-from ai_call_agent.models import Campaign, CallLog,Question
+from ai_call_agent.models import Campaign, CallLog
 
 
-
-
-def insert_or_update_call_details(call_id, phone_number = None, tag=None, call_start_time=None, call_end_time=None, conversation=None, status=1, call_cost=None, campaign_id=None):
+def insert_or_update_call_details(
+    call_id,
+    phone_number=None,
+    tag=None,
+    call_start_time=None,
+    call_end_time=None,
+    conversation=None,
+    status=1,
+    call_cost=None,
+    campaign_id=None,
+):
     campaign = Campaign.objects.get(id=campaign_id) if campaign_id else None
 
     try:
         call_detail = CallLog.objects.get(id=call_id)
-        print(call_id)
+        # print(call_id)
         if phone_number is not None:
             call_detail.phone_number = phone_number
         if tag is not None:
@@ -38,7 +46,7 @@ def insert_or_update_call_details(call_id, phone_number = None, tag=None, call_s
             call_detail.campaign = campaign
 
         call_detail.save()
-       
+
     except CallLog.DoesNotExist:
         call_detail = CallLog.objects.create(
             id=call_id,
@@ -49,19 +57,15 @@ def insert_or_update_call_details(call_id, phone_number = None, tag=None, call_s
             conversation=conversation,
             status=status,
             call_cost=call_cost,
-            campaign=campaign
+            campaign=campaign,
         )
-   
+
     return call_detail
-
-
-
-
 
 
 def insert_feedback_reports(call_detail_id, feedback_data):
     try:
-     
+
         call_detail = CallLog.objects.get(id=call_detail_id)
         content = {}
 
@@ -75,12 +79,10 @@ def insert_feedback_reports(call_detail_id, feedback_data):
             if answer_text:
                 content[answer_key] = answer_text
         call_detail.content = content
-        print(content)
+        # print(content)
         call_detail.save()
 
         return "Feedback reports created successfully."
 
     except CallLog.DoesNotExist:
         raise ValueError("CallLog with the given ID does not exist.")
-
-    
