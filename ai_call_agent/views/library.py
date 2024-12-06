@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from ai_call_agent.models import File
 from ai_call_agent.serializers import FileSerializer
+from ml.embed_processing.create import create_vector_db, delete_zip_files_in_directory
 
 
 class FileViewSet(viewsets.ModelViewSet):
@@ -85,7 +86,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_instance.last_modified = metadata["last_modified"]
         file_instance.s3_key = full_file_name
         file_instance.save()
-
+        create_vector_db(file_obj,bucket_name,folder_path, s3)
         return Response(
             {
                 "status": "File uploaded successfully.",
@@ -97,10 +98,13 @@ class FileViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+
     @action(detail=True, methods=["put"])
     def replace_file(self, request, pk=None):
         file_instance = self.get_object()
+        print(file_instance)
         file_obj = request.FILES.get("file")
+        print(file_obj)
 
         if not file_obj:
             return Response(
@@ -125,7 +129,6 @@ class FileViewSet(viewsets.ModelViewSet):
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         )
-
         bucket_name = settings.AWS_S3_BUCKET_NAME
         if file_instance.s3_key:
             s3.delete_object(Bucket=bucket_name, Key=file_instance.s3_key)
@@ -134,6 +137,8 @@ class FileViewSet(viewsets.ModelViewSet):
         pk_folder = f"{file_instance.pk}/"
         folder_path = user_folder + pk_folder
         full_file_name = folder_path + file_obj.name
+        delete_zip_files_in_directory(s3,bucket_name,folder_path)
+        
 
         response = s3.put_object(
             Bucket=bucket_name,
@@ -161,6 +166,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_instance.last_modified = metadata["last_modified"]
         file_instance.s3_key = full_file_name
         file_instance.save()
+        create_vector_db(file_obj,bucket_name,folder_path, s3)
 
         return Response(
             {
@@ -219,7 +225,7 @@ class FileViewSet(viewsets.ModelViewSet):
 
         user_id = request.user.id
         file_name_in_s3 = f"{user_id}/{instance.pk}/{instance.file_name}"
-
+        delete_zip_files_in_directory(s3,bucket_name,f"{user_id}/{instance.pk}")
         s3.delete_object(Bucket=bucket_name, Key=file_name_in_s3)
         self.perform_destroy(instance)
 

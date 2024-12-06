@@ -4,9 +4,11 @@ import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 
+
 env_path = os.path.join('./ml/.env')
 print(f"Loading .env file from: {env_path}")
 print(load_dotenv(env_path)) 
+
 
 def save_value_to_env(key, value, path):
     print(f"Saving {key}={value} to {path}")
@@ -31,6 +33,7 @@ def save_value_to_env(key, value, path):
         file.writelines(lines)
     print(f"{key} saved successfully to {path}")
 
+
 if __name__ == "__main__":
     import uvicorn
     try:
@@ -52,6 +55,3 @@ if __name__ == "__main__":
         uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="info")
     finally:
         exit
-
-
-

@@ -71,7 +71,6 @@ def get_audio_from_deepGram(text):
 
         response = deepgram.speak.rest.v("1").stream_raw( TEXT, options)
         response.read()
-        # response = response.content  # Skip the first 44 bytes
         return response.content
 
 

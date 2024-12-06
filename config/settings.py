@@ -16,7 +16,7 @@ SECRET_KEY = env.str("SECRET_KEY", default="")
 
 # ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS", default=["192.168.18.29", "localhost", "127.0.0.1"]
+    "ALLOWED_HOSTS", default=["192.168.18.36", "localhost", "127.0.0.1"]
 )
 
 AUTH_USER_MODEL = "authentication.User"
@@ -150,6 +150,8 @@ CELERY_TASK_SERIALIZER = "json"
 
 # DATABASE_URL=postgresql://postgres:Dell%40123%21%40%23%40%40@156.67.27.135/Dialit_db
 # celery -A  worker --pool=gevent --loglevel=info
+STRIPE_SECRET_KEY = "sk_test_51QJZKBG1zx6NU6uvlBQsJmXxif8OqT64LdgHaIphzFWGUWhr7EXvdVXBTIGFkEecv2GYBVavPPaRA3kcI3ufxfPK00l8ngvwFV"
+STRIPE_PUBLISHABLE_KEY = "pk_test_51QJZKBG1zx6NU6uvtdaq4itYhqDRDXcxrAJxlvKfIC0mOpYe9il40xio2i2ElIUEZSliaTm4wvK2s2ezwzDKrnQd00ePhLf6dg"
 
 
 REDIS_HOST = "localhost"

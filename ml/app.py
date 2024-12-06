@@ -8,7 +8,6 @@ import time
 import wave
 from decimal import Decimal
 from io import BytesIO
-
 import django
 import numpy as np
 import soundfile as sf
@@ -18,16 +17,17 @@ from fastapi import FastAPI, Request, Response, WebSocket
 from pyngrok import ngrok
 from starlette.websockets import WebSocketDisconnect
 from twilio.rest import Client
+import ast
 
+from .utils.twilio_transcriber import TwilioTranscriber
+from .utils.my_bot import get_chat_response , processed_filter_campaign_data, get_conversation_history
+from .utils.my_voice import get_audio_from_eleven_labs, get_audio_from_deepGram
+from .embed_processing.gather import load_send_embedding_redis , get_embedding_redis
 # from utils.dgtranscriber import start_deepgram_stream, send_audio_to_deepgram, finish_deepgram_stream, get_last_final_transcript
 from .data_processing.data_processing import fetch_call_details
-from .utils.my_bot import (
-    math_tutor,
-    processed_filter_campaign_data,
-    get_conversation_history,
-)
-from .utils.my_voice import get_audio_from_deepGram
+
 from .utils.twilio_transcriber import TwilioTranscriber
+from .utils.ai_costing import cost_in_thread
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
@@ -164,10 +164,11 @@ def stop_call_for_low_balance(call_sid):
 async def end_call(call_sid, b, raw):
     client = Client(account_sid, TWILIO_AUTH_TOKEN)
     try:
-        call = client.calls(call_sid).update(status="completed")
-        call_details = await sync_to_async(fetch_call_details)(
-            call_sid, history=get_conversation_history(call_sid), uid=b, raw_data=raw
+        client.calls(call_sid).update(status="completed")
+        await sync_to_async(fetch_call_details)(
+            call_sid, history=get_conversation_history(call_sid , raw['campaign_type']), uid=b, raw_data=raw
         )
+            
     except Exception as e:
         print(f"Failed to end call: {e}")
 
@@ -175,11 +176,12 @@ async def end_call(call_sid, b, raw):
 @app.websocket(WEBSOCKET_ROUTE)
 async def transcription_websocket(websocket: WebSocket):
     await websocket.accept()
-    # print("starting while loop")
     transcriber = None
     stream_sid = None
     fetched_data = None
     call_sid = None
+    embd = None
+    
 
     try:
         while True:
@@ -194,15 +196,25 @@ async def transcription_websocket(websocket: WebSocket):
                     # dg_connection = start_deepgram_stream()
 
                 case "start":
-                    a = data["start"]["customParameters"]["a"]
+                    raw_data_json = data["start"]["customParameters"]["a"]
+                    filter_data_json = data["start"]["customParameters"]["aa"]
                     b = data["start"]["customParameters"]["b"]
-                    processed_raw_data, fetched_data = processed_filter_campaign_data(a)
-                    audio = get_audio_from_deepGram(
-                        processed_raw_data["agent"]["first_message"]
-                    )
 
-                    await send_raw_audio(websocket, audio, data["streamSid"])
+                    if isinstance(raw_data_json, str):
+                        raw_data_json = ast.literal_eval(raw_data_json)
+                    if isinstance(filter_data_json, str):
+                        filter_data_json = ast.literal_eval(filter_data_json)
 
+                    if raw_data_json["agent"]["first_message"]:
+                        audio = get_audio_from_deepGram(
+                            raw_data_json["agent"]["first_message"]
+                        )
+                        await send_raw_audio(websocket, audio, data['streamSid'])
+
+                    if raw_data_json['campaign_type'] == 'Outbound_sales':
+                        embd = get_embedding_redis(raw_data_json)
+                    else:
+                        print("no embeddings")
                     call_sid = data["start"]["callSid"]
 
                 case "media":
@@ -216,9 +228,12 @@ async def transcription_websocket(websocket: WebSocket):
                     if transcript_segment:
                         await stop_stream(websocket, stream_sid)
 
-                        response = math_tutor(
-                            transcript_segment, fetched_data, call_sid
+                        response , sell_price , cost_price   = get_chat_response(
+                            transcript_segment, raw_data_json , filter_data_json , call_sid, embeddings = embd
                         )
+                        cost_in_thread(call_sid, raw_data_json["agent"]["user_id"], sell_price, cost_price)
+
+
                         # print(response)
                         audio = get_audio_from_deepGram(response)
                         transcriber.reset_transcript()
@@ -229,16 +244,16 @@ async def transcription_websocket(websocket: WebSocket):
                         if "goodbye" in response.lower():
                             time.sleep(10)
                             ###end cal##
-                            await end_call(call_sid, b, a)
+                            await end_call(call_sid, b, raw_data_json)
 
                 case "stop":
                     ###end cal##
                     print("case stop")
                     await sync_to_async(fetch_call_details)(
                         call_sid,
-                        history=get_conversation_history(call_sid),
+                        history=get_conversation_history(call_sid , raw_data_json['campaign_type']),
                         uid=b,
-                        raw_data=a,
+                        raw_data=raw_data_json,
                     )
 
                     if transcriber:
@@ -274,8 +289,10 @@ def has_phone_numbers(data):
         return False
 
 
+
+
+
 def get_provider_cost_details():
-    print("jvdbfuesbsdmfbdsjfbsdmnf ")
 
     providers = ProviderCost.objects.all()
     provider_details = {}
@@ -288,34 +305,41 @@ def get_provider_cost_details():
     return provider_details
 
 
+
 def make_call(parameter):
-    phone_numbers = has_phone_numbers(parameter)
+
+    processed_raw_data, parameter = processed_filter_campaign_data(parameter)    
+    phone_numbers = has_phone_numbers(processed_raw_data)
     if phone_numbers:
-        print(phone_numbers)
+        pass
     else:
         print("No phone numbers found")
 
-    user = User.objects.get(id=parameter["agent"]["user_id"])
-
+    user = User.objects.get(id=processed_raw_data["agent"]["user_id"])
     provider_costs = get_provider_cost_details()
     total_sell_cost_per_5_seconds = sum(
         Decimal(details["sell_price"] / 60 * 5) for details in provider_costs.values()
     )
+    if processed_raw_data['campaign_type'] == 'Outbound_sales':
+        load_send_embedding_redis(processed_raw_data)
+
 
     for to_number in phone_numbers:
         print(to_number)
         try:
-
             if user.UserBalance < total_sell_cost_per_5_seconds:
                 print(f"Insufficient balance for call {call_sid}. Ending call.")
                 break
+
             call = client.calls.create(
                 twiml=f"""
                         <Response>
                             <Connect>
                                 <Stream url='wss://{os.environ['HOST']}{WEBSOCKET_ROUTE}' >
-                                    <Parameter name="a" value="{parameter}" />
+                                    <Parameter name="a" value="{processed_raw_data}" />
+                                    <Parameter name="aa" value="{parameter}" />
                                     <Parameter name="b" value="{to_number['call_id']}" />
+
                                     </Stream>
                             </Connect>
                         </Response> 
@@ -338,10 +362,10 @@ def make_call(parameter):
 
             # monitor_call.apply_async(args=[user.id, call.sid, call_log_id], countdown=5)
             # monitor_call.apply_async(args=[user.id, call.sid], countdown=5)
-            fetch_call_details(call_sid, history=None, uid=to_number["call_id"])
-            # print(
-            #     f"Call initiated to {to_number['phone_number']} with Call SID: {call_sid}"
-            # )
+            fetch_call_details(call_sid, history=None, uid=to_number["call_id"], raw_data = processed_raw_data)
+            print(
+                f"Call initiated to {to_number['phone_number']} with Call SID: {call_sid}"
+            )
 
         except Exception as e:
             print(f"Failed to initiate call to {to_number['phone_number']}: {e}")
