@@ -129,7 +129,7 @@ def Ai_task(campaign_id):
 
         print(campaign_data)
         make_call(campaign_info)
-
+        
         campaign.status = 3
         campaign.save()
 

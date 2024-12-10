@@ -4,6 +4,14 @@ import sys
 import django
 from twilio.rest import Client
 
+from ai_call_agent.query import (
+    get_provider_cost_details,
+    update_user,
+    update_call_log,
+    get_user_details,
+    insert_new_costtb,
+)
+
 from config import settings
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -18,8 +26,7 @@ import time
 from decimal import Decimal
 from redis import StrictRedis
 from django.db import transaction
-from authentication.models import User
-from ai_call_agent.models import CallLog, ProviderCost, Costtb
+from ai_call_agent.models import ProviderCost
 import django
 
 django.setup()
@@ -32,18 +39,6 @@ redis_client = redis.StrictRedis(
     db=settings.REDIS_DB,
     decode_responses=True,
 )
-
-
-def get_provider_cost_details():
-    providers = ProviderCost.objects.all()
-    provider_details = {}
-    for provider in providers:
-        provider_details[provider.category] = {
-            "sell_price": Decimal(provider.sell_price),
-            "cost_price": Decimal(provider.cost_price),
-            "provider": provider.provider,
-        }
-    return provider_details
 
 
 def update_costs_in_redis(redis_client, call_key, provider_costs):
@@ -59,39 +54,40 @@ def update_costs_in_redis(redis_client, call_key, provider_costs):
         print(f"Error updating costs in Redis for {call_key}: {e}")
 
 
-def finalize_call_data(redis_client, user_balance_key, call_key, call_log_id, user_id):
+def finalize_call_data(redis_client, user_balance_key, call_key, call_log_id, user_id,call_endtime ,call_duration,call_status):
     try:
         call_data = redis_client.hgetall(call_key)
 
         if call_data:
-            call_log = CallLog.objects.get(id=call_log_id)
-            user = User.objects.get(id=user_id)
-
             total_sell_cost = Decimal(0)
 
             with transaction.atomic():
                 for category, sell_cost_str in call_data.items():
                     if "_cost" not in category:
-                        provider_cost = ProviderCost.objects.filter(
+                        provider_cost_details = get_provider_cost_details(
                             category=category
-                        ).first()
-                        if provider_cost:
+                        )
+                        
+                        if provider_cost_details and category in provider_cost_details:
+                            provider_cost = provider_cost_details[category]
                             sell_cost = Decimal(sell_cost_str)
                             total_sell_cost += sell_cost
                             cost_price = Decimal(call_data.get(f"{category}_cost", "0"))
-                            Costtb.objects.create(
-                                call_log=call_log,
-                                provider_id=provider_cost.id,
-                                sell_cost=sell_cost,
-                                cost=cost_price,
-                            )
+                            costtb_data = {
+                                "call_log_id": call_log_id,
+                                "provider_id": provider_cost["id"],
+                                "sell_cost": sell_cost,
+                                "cost": cost_price,
+                            }
+                            insert_new_costtb(costtb_data)
 
                 balance = Decimal(redis_client.hget(user_balance_key, "balance") or "0")
-                user.UserBalance = balance
-                user.save()
-                call_log.call_cost = total_sell_cost
-                call_log.status = "completed"
-                call_log.save()
+                updated_user = update_user(user_id=user_id, UserBalance=balance)
+
+
+                updated_call_log = update_call_log(
+                    call_log_id=call_log_id, call_cost=total_sell_cost,call_end_time=call_endtime ,call_duration=call_duration,status=call_status
+                    )
 
             redis_client.delete(call_key)
 
@@ -105,6 +101,8 @@ def finalize_call_data(redis_client, user_balance_key, call_key, call_log_id, us
         print(f"Error finalizing call data for call_log_id {call_log_id}: {e}")
 
 
+
+
 @shared_task
 def monitor_call(user_id, call_sid, call_log_id):
     user_balance_key = f"user_balance:{user_id}"
@@ -113,8 +111,13 @@ def monitor_call(user_id, call_sid, call_log_id):
     provider_costs = get_provider_cost_details()
 
     if not redis_client.exists(user_balance_key):
-        user = User.objects.get(id=user_id)
-        redis_client.hset(user_balance_key, "balance", str(user.UserBalance))
+
+        user = get_user_details(user_id=user_id)
+        redis_client.hset(user_balance_key, "balance", str(user["UserBalance"]))
+
+
+
+
 
     if not redis_client.exists(call_key):
         for category in provider_costs.keys():
@@ -128,14 +131,25 @@ def monitor_call(user_id, call_sid, call_log_id):
         try:
             client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
             call = client.calls(call_sid).fetch()
+            call_endtime = call.end_time
+            call_duration = call.duration
+            call_status= call.status
             if call.status in ["ringing", "queued"]:
+                updated_call_log = update_call_log(
+                    call_log_id=call_log_id, status=call.status
+                    )
                 continue
             if call.status in ["completed", "canceled", "failed", "no-answer"]:
+
+
                 finalize_call_data(
-                    redis_client, user_balance_key, call_key, call_log_id, user_id
+                    redis_client, user_balance_key, call_key, call_log_id, user_id,call_endtime ,call_duration,call_status
                 )
                 break
             if call.status == "in-progress":
+                updated_call_log = update_call_log(
+                    call_log_id=call_log_id, status=call.status,call_start_time=call.start_time
+                    )
                 balance = Decimal(redis_client.hget(user_balance_key, "balance") or "0")
                 openai_sell_price = Decimal(
                     redis_client.hget(call_key, "openai_sell_price") or "0"
@@ -148,8 +162,9 @@ def monitor_call(user_id, call_sid, call_log_id):
                 )
                 if balance < total_cost_with_openai:
                     call = client.calls(call_sid).update(status="completed")
+                    call_status="Ended :Blance Low"
                     finalize_call_data(
-                        redis_client, user_balance_key, call_key, call_log_id, user_id
+                        redis_client, user_balance_key, call_key, call_log_id, user_id,call_endtime ,call_duration,call_status
                     )
                     break
 

@@ -24,7 +24,7 @@ from .utils.my_bot import get_chat_response , processed_filter_campaign_data, ge
 from .utils.my_voice import get_audio_from_eleven_labs, get_audio_from_deepGram
 from .embed_processing.gather import load_send_embedding_redis , get_embedding_redis
 # from utils.dgtranscriber import start_deepgram_stream, send_audio_to_deepgram, finish_deepgram_stream, get_last_final_transcript
-from .data_processing.data_processing import fetch_call_details
+from .data_processing.data_processing import put_call_details
 
 from .utils.twilio_transcriber import TwilioTranscriber
 from .utils.ai_costing import cost_in_thread
@@ -39,7 +39,13 @@ from django.conf import settings
 from authentication.models import User
 from config import settings
 from ai_call_agent.tasks2 import monitor_call
-
+from ai_call_agent.query import (
+    get_provider_cost_details,
+    update_user,
+    update_call_log,
+    get_user_details,
+    insert_new_costtb,
+)
 load_dotenv()
 
 PORT = 5000
@@ -128,7 +134,7 @@ async def receive_call(request: Request):
     parameter = request.query_params.get("a")
 
     if parameter:
-        fetch_call_details(call_sid, history=None)
+        put_call_details(call_sid, history=None)
         xml = f"""
                 <Response>
                     <Connect>
@@ -165,7 +171,7 @@ async def end_call(call_sid, b, raw):
     client = Client(account_sid, TWILIO_AUTH_TOKEN)
     try:
         client.calls(call_sid).update(status="completed")
-        await sync_to_async(fetch_call_details)(
+        await sync_to_async(put_call_details)(
             call_sid, history=get_conversation_history(call_sid , raw['campaign_type']), uid=b, raw_data=raw
         )
             
@@ -249,7 +255,7 @@ async def transcription_websocket(websocket: WebSocket):
                 case "stop":
                     ###end cal##
                     print("case stop")
-                    await sync_to_async(fetch_call_details)(
+                    await sync_to_async(put_call_details)(
                         call_sid,
                         history=get_conversation_history(call_sid , raw_data_json['campaign_type']),
                         uid=b,
@@ -292,20 +298,6 @@ def has_phone_numbers(data):
 
 
 
-def get_provider_cost_details():
-
-    providers = ProviderCost.objects.all()
-    provider_details = {}
-    for provider in providers:
-        provider_details[provider.category] = {
-            "sell_price": Decimal(provider.sell_price),
-            "cost_price": Decimal(provider.cost_price),
-            "provider": provider.provider,
-        }
-    return provider_details
-
-
-
 def make_call(parameter):
 
     processed_raw_data, parameter = processed_filter_campaign_data(parameter)    
@@ -315,7 +307,8 @@ def make_call(parameter):
     else:
         print("No phone numbers found")
 
-    user = User.objects.get(id=processed_raw_data["agent"]["user_id"])
+    user = get_user_details(user_id=processed_raw_data["agent"]["user_id"])
+
     provider_costs = get_provider_cost_details()
     total_sell_cost_per_5_seconds = sum(
         Decimal(details["sell_price"] / 60 * 5) for details in provider_costs.values()
@@ -327,7 +320,7 @@ def make_call(parameter):
     for to_number in phone_numbers:
         print(to_number)
         try:
-            if user.UserBalance < total_sell_cost_per_5_seconds:
+            if user["UserBalance"] < total_sell_cost_per_5_seconds:
                 print(f"Insufficient balance for call {call_sid}. Ending call.")
                 break
 
@@ -352,17 +345,17 @@ def make_call(parameter):
             call_log_id = to_number["call_id"]
 
             task_result = monitor_call.apply_async(
-                args=[user.id, call.sid, call_log_id], countdown=5
+                args=[user["id"], call.sid, call_log_id]
             )
             task_id = task_result.id
 
-            CallLog.objects.filter(id=call_log_id).update(
-                call_task_id=task_id, call_sid=call_sid
-            )
 
-            # monitor_call.apply_async(args=[user.id, call.sid, call_log_id], countdown=5)
-            # monitor_call.apply_async(args=[user.id, call.sid], countdown=5)
-            fetch_call_details(call_sid, history=None, uid=to_number["call_id"], raw_data = processed_raw_data)
+            update_call_log(
+                    call_log_id=call_log_id, call_task_id=task_id, call_sid=call_sid
+                    )
+
+         
+            put_call_details(call_sid, history=None, uid=to_number["call_id"], raw_data = processed_raw_data)
             print(
                 f"Call initiated to {to_number['phone_number']} with Call SID: {call_sid}"
             )

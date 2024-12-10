@@ -34,9 +34,12 @@ def update_cost_in_redis_for_llm(
 
         call_key = f"user_call:{user_id}:{call_sid}"
 
+        # redis_client.hincrbyfloat(call_key, f"{category}_sell_price", sell_price)
+        # redis_client.hincrbyfloat(call_key, f"{category}_cost_price", cost_price)
+
         redis_client.hincrbyfloat(call_key, f"{category}_sell_price", sell_price)
         redis_client.hincrbyfloat(call_key, f"{category}_cost_price", cost_price)
-
+        
         redis_client.hset(call_key, f"{category}_category", category)
 
         print(
