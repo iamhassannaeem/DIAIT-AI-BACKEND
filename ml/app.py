@@ -1,3 +1,4 @@
+import ast
 import audioop
 import base64
 import json
@@ -8,6 +9,7 @@ import time
 import wave
 from decimal import Decimal
 from io import BytesIO
+
 import django
 import numpy as np
 import soundfile as sf
@@ -17,35 +19,31 @@ from fastapi import FastAPI, Request, Response, WebSocket
 from pyngrok import ngrok
 from starlette.websockets import WebSocketDisconnect
 from twilio.rest import Client
-import ast
 
-from .utils.twilio_transcriber import TwilioTranscriber
-from .utils.my_bot import get_chat_response , processed_filter_campaign_data, get_conversation_history
-from .utils.my_voice import get_audio_from_eleven_labs, get_audio_from_deepGram
-from .embed_processing.gather import load_send_embedding_redis , get_embedding_redis
 # from utils.dgtranscriber import start_deepgram_stream, send_audio_to_deepgram, finish_deepgram_stream, get_last_final_transcript
 from .data_processing.data_processing import put_call_details
-
-from .utils.twilio_transcriber import TwilioTranscriber
+from .embed_processing.gather import load_send_embedding_redis, get_embedding_redis
 from .utils.ai_costing import cost_in_thread
+from .utils.my_bot import (
+    get_chat_response,
+    processed_filter_campaign_data,
+    get_conversation_history,
+)
+from .utils.my_voice import get_audio_from_deepGram
+from .utils.twilio_transcriber import TwilioTranscriber
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
-from ai_call_agent.models import CallLog, ProviderCost
 
-from django.conf import settings
-from authentication.models import User
-from config import settings
 from ai_call_agent.tasks2 import monitor_call
 from ai_call_agent.query import (
     get_provider_cost_details,
-    update_user,
     update_call_log,
     get_user_details,
-    insert_new_costtb,
 )
+
 load_dotenv()
 
 PORT = 5000
@@ -172,9 +170,12 @@ async def end_call(call_sid, b, raw):
     try:
         client.calls(call_sid).update(status="completed")
         await sync_to_async(put_call_details)(
-            call_sid, history=get_conversation_history(call_sid , raw['campaign_type']), uid=b, raw_data=raw
+            call_sid,
+            history=get_conversation_history(call_sid, raw["campaign_type"]),
+            uid=b,
+            raw_data=raw,
         )
-            
+
     except Exception as e:
         print(f"Failed to end call: {e}")
 
@@ -187,7 +188,6 @@ async def transcription_websocket(websocket: WebSocket):
     fetched_data = None
     call_sid = None
     embd = None
-    
 
     try:
         while True:
@@ -215,9 +215,9 @@ async def transcription_websocket(websocket: WebSocket):
                         audio = get_audio_from_deepGram(
                             raw_data_json["agent"]["first_message"]
                         )
-                        await send_raw_audio(websocket, audio, data['streamSid'])
+                        await send_raw_audio(websocket, audio, data["streamSid"])
 
-                    if raw_data_json['campaign_type'] == 'Outbound_sales':
+                    if raw_data_json["campaign_type"] == "Outbound_sales":
                         embd = get_embedding_redis(raw_data_json)
                     else:
                         print("no embeddings")
@@ -234,11 +234,19 @@ async def transcription_websocket(websocket: WebSocket):
                     if transcript_segment:
                         await stop_stream(websocket, stream_sid)
 
-                        response , sell_price , cost_price   = get_chat_response(
-                            transcript_segment, raw_data_json , filter_data_json , call_sid, embeddings = embd
+                        response, sell_price, cost_price = get_chat_response(
+                            transcript_segment,
+                            raw_data_json,
+                            filter_data_json,
+                            call_sid,
+                            embeddings=embd,
                         )
-                        cost_in_thread(call_sid, raw_data_json["agent"]["user_id"], sell_price, cost_price)
-
+                        cost_in_thread(
+                            call_sid,
+                            raw_data_json["agent"]["user_id"],
+                            sell_price,
+                            cost_price,
+                        )
 
                         # print(response)
                         audio = get_audio_from_deepGram(response)
@@ -257,7 +265,9 @@ async def transcription_websocket(websocket: WebSocket):
                     print("case stop")
                     await sync_to_async(put_call_details)(
                         call_sid,
-                        history=get_conversation_history(call_sid , raw_data_json['campaign_type']),
+                        history=get_conversation_history(
+                            call_sid, raw_data_json["campaign_type"]
+                        ),
                         uid=b,
                         raw_data=raw_data_json,
                     )
@@ -295,12 +305,9 @@ def has_phone_numbers(data):
         return False
 
 
-
-
-
 def make_call(parameter):
 
-    processed_raw_data, parameter = processed_filter_campaign_data(parameter)    
+    processed_raw_data, parameter = processed_filter_campaign_data(parameter)
     phone_numbers = has_phone_numbers(processed_raw_data)
     if phone_numbers:
         pass
@@ -313,9 +320,8 @@ def make_call(parameter):
     total_sell_cost_per_5_seconds = sum(
         Decimal(details["sell_price"] / 60 * 5) for details in provider_costs.values()
     )
-    if processed_raw_data['campaign_type'] == 'Outbound_sales':
+    if processed_raw_data["campaign_type"] == "Outbound_sales":
         load_send_embedding_redis(processed_raw_data)
-
 
     for to_number in phone_numbers:
         print(to_number)
@@ -349,13 +355,16 @@ def make_call(parameter):
             )
             task_id = task_result.id
 
-
             update_call_log(
-                    call_log_id=call_log_id, call_task_id=task_id, call_sid=call_sid
-                    )
+                call_log_id=call_log_id, call_task_id=task_id, call_sid=call_sid
+            )
 
-         
-            put_call_details(call_sid, history=None, uid=to_number["call_id"], raw_data = processed_raw_data)
+            put_call_details(
+                call_sid,
+                history=None,
+                uid=to_number["call_id"],
+                raw_data=processed_raw_data,
+            )
             print(
                 f"Call initiated to {to_number['phone_number']} with Call SID: {call_sid}"
             )
