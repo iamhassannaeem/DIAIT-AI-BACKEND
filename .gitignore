@@ -6,4 +6,3 @@ __pycache__/
 staticfiles/
 .vscode/
 .idea/
-.env
