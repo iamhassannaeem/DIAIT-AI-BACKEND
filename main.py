@@ -37,19 +37,19 @@ def save_value_to_env(key, value, path):
 if __name__ == "__main__":
     import uvicorn
     try:
-        listener = ngrok.connect(f"http://localhost:{PORT}")
-        print(f"Ngrok tunnel opened at {listener.public_url} for port {PORT}")
-        NGROK_URL = listener.public_url
-        parsed_url = urlparse(NGROK_URL)
+        # listener = ngrok.connect(f"http://localhost:{PORT}")
+        # print(f"Ngrok tunnel opened at {listener.public_url} for port {PORT}")
+        # NGROK_URL = listener.public_url
+        # parsed_url = urlparse(NGROK_URL)
 
-        save_value_to_env("HOST", parsed_url.hostname, env_path)
+        # save_value_to_env("HOST", parsed_url.hostname, env_path)
 
         twilio_numbers = client.incoming_phone_numbers.list()
         twilio_number_sid = [num.sid for num in twilio_numbers if num.phone_number == TWILIO_NUMBER][0]
 
         client.incoming_phone_numbers(twilio_number_sid).update(
             account_sid,
-            voice_url=f"{NGROK_URL}{INCOMING_CALL_ROUTE}?a='1122'"
+            voice_url=f"https://{os.environ['HOST']}/{INCOMING_CALL_ROUTE}?a='1122'"
         )
 
         uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="info")
